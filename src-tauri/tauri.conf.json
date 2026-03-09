@@ -1,0 +1,87 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "HERMES-IDE",
+  "version": "0.3.37",
+  "identifier": "com.hermes-ide.terminal",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "HERMES-IDE",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 600,
+        "minHeight": 400,
+        "decorations": true,
+        "transparent": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "dragDropEnabled": true
+      }
+    ],
+    "macOSPrivateApi": true,
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https://asset.localhost data:; font-src 'self' data:; connect-src ipc: http://ipc.localhost https://ipc.localhost http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://github.com https://api.github.com https://eu.aptabase.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "13.0",
+      "dmg": {
+        "background": "icons/dmg-background.png",
+        "windowSize": {
+          "width": 720,
+          "height": 480
+        },
+        "appPosition": {
+          "x": 200,
+          "y": 220
+        },
+        "applicationFolderPosition": {
+          "x": 520,
+          "y": 220
+        }
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico"
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libsoup-3.0-0",
+          "libjavascriptcoregtk-4.1-0"
+        ],
+        "section": "utils"
+      },
+      "appimage": {}
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDAwNDJDQTBGNzc3QzdDMjMKUldRamZIeDNEOHBDQUlwZmUraS90ZzQyWHllUGZYTTU2UnpRNldxUmZlNTRpZWpncTVodGY4aWIK",
+      "endpoints": [
+        "https://github.com/Vinci-26/hermes-ide-releases/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

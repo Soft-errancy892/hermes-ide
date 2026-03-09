@@ -1,0 +1,173 @@
+/* ─── Layout ──────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+
+.main-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.terminal-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+}
+
+.terminal-and-timeline {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Panel Error Boundary ─────────────────────────────── */
+
+.panel-error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--text-2);
+  font-size: var(--text-sm);
+  text-align: center;
+  height: 100%;
+}
+
+.panel-error-boundary p {
+  margin: 0;
+}
+
+.panel-error-boundary button {
+  background: var(--bg-2);
+  color: var(--text-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.panel-error-boundary button:hover {
+  background: var(--bg-3);
+}
+
+/* ─── CRT Scanline Overlay ──────────────────────────────── */
+
+.app::after {
+  content: "";
+  position: fixed;
+  top: var(--topbar-h);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 2px,
+    rgba(0, 0, 0, 1) 2px, rgba(0, 0, 0, 1) 4px
+  );
+  opacity: var(--scanline-opacity);
+}
+
+/* ─── Drag & Drop ──────────────────────────────────────────────── */
+
+.session-item {
+  cursor: grab;
+}
+.session-item:active {
+  cursor: grabbing;
+}
+
+/*
+  Transparent capture overlay — always in DOM (no insert/remove during drag).
+  Normally invisible + ignores pointer. During drag (.split-pane-dragging),
+  becomes active so xterm canvas doesn't eat drag events.
+*/
+.split-pane-drag-capture {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: transparent;
+  pointer-events: none;
+}
+/* Activate capture overlays when parent pane detects drag OR when body has global drag class */
+.split-pane-dragging .split-pane-drag-capture,
+.session-dragging .split-pane-drag-capture {
+  pointer-events: auto;
+}
+
+/*
+  Drop zone overlay — always in DOM, hidden by default.
+  Only visible when a specific zone class is applied.
+*/
+.split-pane-drop-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 2px solid transparent;
+  opacity: 0;
+  transition: opacity 0.08s ease-out, background 0.08s ease-out, border-color 0.08s ease-out;
+}
+.split-pane-drop-overlay.split-pane-drop-visible {
+  opacity: 1;
+  background: var(--accent-dim);
+  border-color: var(--accent);
+}
+
+.split-pane-drop-label {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--bg-0);
+  background: var(--accent);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+/* Zone positions — override inset to clip to zone area */
+.split-pane-drop-left {
+  right: 50%;
+}
+.split-pane-drop-right {
+  left: 50%;
+}
+.split-pane-drop-top {
+  bottom: 50%;
+}
+.split-pane-drop-bottom {
+  top: 50%;
+}
+.split-pane-drop-center {
+  background: var(--accent-dim);
+}
+/* File drop — full pane highlight with dashed border */
+.split-pane-drop-file.split-pane-drop-visible {
+  border-style: dashed;
+}
+/* Image drop on AI session — solid border to distinguish from file drop */
+.split-pane-drop-image.split-pane-drop-visible {
+  border-style: solid;
+  border-width: 2px;
+}

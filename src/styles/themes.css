@@ -1,0 +1,1184 @@
+/* ─── Theme Overrides ──────────────────────────────────────────────
+ * Each block overrides the CSS custom properties defined in tokens.css.
+ * The default "dark" theme inherits from :root — no override needed.
+ * ──────────────────────────────────────────────────────────────────── */
+
+/* ─── Hacker (green phosphor CRT) ─────────────────────────────── */
+html[data-theme="hacker"] {
+  --bg-0: #0a0a0a;
+  --bg-1: #0d1a0d;
+  --bg-2: #142014;
+  --bg-3: #1a2e1a;
+  --bg-hover: #1a2e1a;
+  --bg-active: #244024;
+  --text-0: #33ff99;
+  --text-1: #29cc7a;
+  --text-2: #1a8050;
+  --text-3: #0f5030;
+  --accent: #33ff99;
+  --accent-dim: #33ff9920;
+  --green: #33ff99;
+  --green-dim: #33ff9926;
+  --red: #ff4444;
+  --red-dim: #ff444426;
+  --yellow: #ccff00;
+  --yellow-dim: #ccff0026;
+  --violet: #66ffbb;
+  --violet-dim: #66ffbb26;
+  --error: #ff4444;
+  --border: #0f2a0f;
+  --border-light: #1a3d1a;
+  --scanline-opacity: 0.15;
+  --accent-glow: 0 0 12px #33ff9944;
+}
+
+/* ─── Atelier (warm designer) ──────────────────────────────────── */
+html[data-theme="designer"] {
+  --bg-0: #1a1714;
+  --bg-1: #221e1a;
+  --bg-2: #2a2520;
+  --bg-3: #332e28;
+  --bg-hover: #332e28;
+  --bg-active: #3d3630;
+  --text-0: #e8e0d4;
+  --text-1: #c8bfb0;
+  --text-2: #8a7f72;
+  --text-3: #6b6258;
+  --accent: #e07850;
+  --accent-dim: #e0785020;
+  --green: #8fbc6a;
+  --green-dim: #8fbc6a26;
+  --red: #d95555;
+  --red-dim: #d9555526;
+  --yellow: #d4a845;
+  --yellow-dim: #d4a84526;
+  --violet: #b58bdb;
+  --violet-dim: #b58bdb26;
+  --error: #d95555;
+  --border: #2a2520;
+  --border-light: #3a3430;
+  --scanline-opacity: 0;
+  --accent-glow: none;
+}
+
+/* ─── Deep Lab (data science navy) ─────────────────────────────── */
+html[data-theme="data"] {
+  --bg-0: #0a0e1a;
+  --bg-1: #101828;
+  --bg-2: #182040;
+  --bg-3: #1e2850;
+  --bg-hover: #1e2850;
+  --bg-active: #263060;
+  --text-0: #c8d8f0;
+  --text-1: #9aacc8;
+  --text-2: #5a7090;
+  --text-3: #3a4a68;
+  --accent: #22d3ee;
+  --accent-dim: #22d3ee20;
+  --green: #34d399;
+  --green-dim: #34d39926;
+  --red: #f87171;
+  --red-dim: #f8717126;
+  --yellow: #fbbf24;
+  --yellow-dim: #fbbf2426;
+  --violet: #818cf8;
+  --violet-dim: #818cf826;
+  --error: #f87171;
+  --border: #152040;
+  --border-light: #1e2e58;
+  --scanline-opacity: 0.05;
+  --accent-glow: none;
+}
+
+/* ─── Enterprise (professional slate) ──────────────────────────── */
+html[data-theme="corporate"] {
+  --bg-0: #111418;
+  --bg-1: #181c22;
+  --bg-2: #1f2428;
+  --bg-3: #272c32;
+  --bg-hover: #272c32;
+  --bg-active: #30363e;
+  --text-0: #d4d8e0;
+  --text-1: #aab0bc;
+  --text-2: #6b7280;
+  --text-3: #4a5060;
+  --accent: #4a90d9;
+  --accent-dim: #4a90d920;
+  --green: #48c78e;
+  --green-dim: #48c78e26;
+  --red: #ef5350;
+  --red-dim: #ef535026;
+  --yellow: #f0ad4e;
+  --yellow-dim: #f0ad4e26;
+  --violet: #7c8aed;
+  --violet-dim: #7c8aed26;
+  --error: #ef5350;
+  --border: #1e2228;
+  --border-light: #282e36;
+  --scanline-opacity: 0;
+  --accent-glow: none;
+}
+
+/* ─── Night Owl (AMOLED purple) ────────────────────────────────── */
+html[data-theme="nightowl"] {
+  --bg-0: #010104;
+  --bg-1: #0a0a14;
+  --bg-2: #12121e;
+  --bg-3: #1a1a2e;
+  --bg-hover: #1a1a2e;
+  --bg-active: #22223a;
+  --text-0: #d6d6f0;
+  --text-1: #a8a8c8;
+  --text-2: #606088;
+  --text-3: #3a3a5a;
+  --accent: #a78bfa;
+  --accent-dim: #a78bfa20;
+  --green: #66e0a3;
+  --green-dim: #66e0a326;
+  --red: #ff6b6b;
+  --red-dim: #ff6b6b26;
+  --yellow: #ffd166;
+  --yellow-dim: #ffd16626;
+  --violet: #c4b5fd;
+  --violet-dim: #c4b5fd26;
+  --error: #ff6b6b;
+  --border: #14142a;
+  --border-light: #1e1e3e;
+  --scanline-opacity: 0;
+  --accent-glow: 0 0 10px #a78bfa33;
+}
+
+/* ─── Tron (digital frontier) ─────────────────────────────────── */
+html[data-theme="tron"] {
+  --bg-0: #030810;
+  --bg-1: #06101c;
+  --bg-2: #0b1a2a;
+  --bg-3: #0f2236;
+  --bg-hover: #0f2236;
+  --bg-active: #142d44;
+  --text-0: #d0f0ff;
+  --text-1: #8ecae6;
+  --text-2: #4a8aaa;
+  --text-3: #1e5070;
+  --accent: #00dffc;
+  --accent-dim: #00dffc18;
+  --green: #00ffaa;
+  --green-dim: #00ffaa26;
+  --red: #ff3855;
+  --red-dim: #ff385526;
+  --yellow: #ffe64d;
+  --yellow-dim: #ffe64d26;
+  --violet: #7df9ff;
+  --violet-dim: #7df9ff26;
+  --error: #ff3855;
+  --border: #00dffc18;
+  --border-light: #00dffc30;
+  --scanline-opacity: 0.04;
+  --accent-glow: 0 0 14px #00dffc55;
+  --tron-line-color: #00dffc;
+  --tron-line-secondary: #00ffaa;
+}
+
+/* ── Tron energy lines on borders ───────────────────────────── */
+
+html[data-theme="tron"] .topbar {
+  border-bottom: 1px solid var(--border-light);
+  background:
+    linear-gradient(to right,
+      transparent 0%,
+      #00dffc08 20%,
+      #00dffc15 50%,
+      #00dffc08 80%,
+      transparent 100%)
+    bottom / 100% 1px no-repeat,
+    var(--bg-1);
+  box-shadow: 0 1px 12px #00dffc18;
+}
+
+html[data-theme="tron"] .status-bar {
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -1px 12px #00dffc18;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated energy pulse traveling across the status bar */
+html[data-theme="tron"] .status-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -40%;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #00dffc00,
+    #00dffc,
+    #7df9ff,
+    #00dffc,
+    #00dffc00,
+    transparent
+  );
+  animation: tron-energy-h 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Animated energy pulse traveling across the topbar */
+html[data-theme="tron"] .topbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  right: -40%;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    #00dffc00,
+    #00dffc,
+    #7df9ff,
+    #00dffc,
+    #00dffc00,
+    transparent
+  );
+  animation: tron-energy-h-reverse 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Vertical energy line on left activity bar edge */
+html[data-theme="tron"] .activity-bar-left {
+  border-right: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="tron"] .activity-bar-left::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #00dffc00,
+    #00ffaa,
+    #7df9ff,
+    #00ffaa,
+    #00dffc00,
+    transparent
+  );
+  animation: tron-energy-v 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Vertical energy line on right activity bar edge */
+html[data-theme="tron"] .activity-bar-right {
+  border-left: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="tron"] .activity-bar-right::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to top,
+    transparent,
+    #00dffc00,
+    #00dffc,
+    #7df9ff,
+    #00dffc,
+    #00dffc00,
+    transparent
+  );
+  animation: tron-energy-v-reverse 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Sidebar panel border energy */
+html[data-theme="tron"] .session-list,
+html[data-theme="tron"] .process-panel,
+html[data-theme="tron"] .git-panel-root,
+html[data-theme="tron"] .file-explorer-panel,
+html[data-theme="tron"] .search-panel {
+  border-right: 1px solid var(--border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="tron"] .session-list::after,
+html[data-theme="tron"] .process-panel::after,
+html[data-theme="tron"] .git-panel-root::after,
+html[data-theme="tron"] .file-explorer-panel::after,
+html[data-theme="tron"] .search-panel::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #00dffc00,
+    #00dffc,
+    #7df9ff,
+    #00dffc,
+    #00dffc00,
+    transparent
+  );
+  animation: tron-energy-v 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Accent glow on focused elements */
+html[data-theme="tron"] .session-item.active {
+  box-shadow: inset 2px 0 8px #00dffc22;
+}
+
+html[data-theme="tron"] .activity-bar-tab.active {
+  box-shadow: 0 0 8px #00dffc33;
+}
+
+/* Subtle grid pattern in background */
+html[data-theme="tron"] #root {
+  background:
+    linear-gradient(#00dffc06 1px, transparent 1px),
+    linear-gradient(90deg, #00dffc06 1px, transparent 1px),
+    var(--bg-0);
+  background-size: 60px 60px, 60px 60px, 100%;
+}
+
+/* ── Tron keyframes ──────────────────────────────────────────── */
+
+@keyframes tron-energy-h {
+  0%   { left: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes tron-energy-h-reverse {
+  0%   { right: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { right: 100%; opacity: 0; }
+}
+
+@keyframes tron-energy-v {
+  0%   { top: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes tron-energy-v-reverse {
+  0%   { bottom: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { bottom: 100%; opacity: 0; }
+}
+
+/* ─── Duel (opposing forces) ──────────────────────────────────── */
+html[data-theme="duel"] {
+  --bg-0: #06060a;
+  --bg-1: #0c0c14;
+  --bg-2: #14141e;
+  --bg-3: #1a1a28;
+  --bg-hover: #1a1a28;
+  --bg-active: #222234;
+  --text-0: #e0dce8;
+  --text-1: #b0aac0;
+  --text-2: #6a6480;
+  --text-3: #3e3a50;
+  --accent: #b0b0c8;
+  --accent-dim: #b0b0c818;
+  --green: #44ee88;
+  --green-dim: #44ee8826;
+  --red: #ee4444;
+  --red-dim: #ee444426;
+  --yellow: #f0c040;
+  --yellow-dim: #f0c04026;
+  --violet: #aa66dd;
+  --violet-dim: #aa66dd26;
+  --error: #ee4444;
+  --border: #ee444414;
+  --border-light: #ee444425;
+  --scanline-opacity: 0.03;
+  --accent-glow: none;
+  --duel-red: #ee4444;
+  --duel-green: #44ee88;
+}
+
+/* ── Duel: topbar — red-to-green gradient energy ────────────── */
+
+html[data-theme="duel"] .topbar {
+  border-bottom: 1px solid #ee444418;
+  box-shadow: 0 1px 12px #ee444412;
+}
+
+html[data-theme="duel"] .topbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #ee444400,
+    #ee4444,
+    #f06040,
+    #c8c040,
+    #44ee88,
+    #44ee8800,
+    transparent
+  );
+  animation: duel-energy-h 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* ── Duel: status bar — green-to-red gradient energy ────────── */
+
+html[data-theme="duel"] .status-bar {
+  border-top: 1px solid #44ee8818;
+  box-shadow: 0 -1px 12px #44ee8812;
+}
+
+html[data-theme="duel"] .status-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -30%;
+  width: 30%;
+  height: 1px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    #44ee8800,
+    #44ee88,
+    #c8c040,
+    #f06040,
+    #ee4444,
+    #ee444400,
+    transparent
+  );
+  animation: duel-energy-h-reverse 5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* ── Duel: left side — red energy ───────────────────────────── */
+
+html[data-theme="duel"] .activity-bar-left {
+  border-right: 1px solid #ee444420;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to right, #ee444408, #ee444403), var(--bg-0);
+}
+
+html[data-theme="duel"] .activity-bar-left::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #ee444400,
+    #ee4444,
+    #ff6666,
+    #ee4444,
+    #ee444400,
+    transparent
+  );
+  animation: duel-energy-v 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+html[data-theme="duel"] .session-list,
+html[data-theme="duel"] .process-panel,
+html[data-theme="duel"] .git-panel-root,
+html[data-theme="duel"] .file-explorer-panel,
+html[data-theme="duel"] .search-panel {
+  border-right: 1px solid #ee444420;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to right, #ee444406, transparent), var(--bg-1);
+}
+
+html[data-theme="duel"] .session-list::after,
+html[data-theme="duel"] .process-panel::after,
+html[data-theme="duel"] .git-panel-root::after,
+html[data-theme="duel"] .file-explorer-panel::after,
+html[data-theme="duel"] .search-panel::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #ee444400,
+    #ee4444,
+    #ff6666,
+    #ee4444,
+    #ee444400,
+    transparent
+  );
+  animation: duel-energy-v 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Left side active items glow red */
+html[data-theme="duel"] .session-item.active {
+  box-shadow: inset 2px 0 8px #ee444422;
+}
+
+/* ── Duel: right side — green energy ────────────────────────── */
+
+html[data-theme="duel"] .activity-bar-right {
+  border-left: 1px solid #44ee8820;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to left, #44ee8808, #44ee8803), var(--bg-0);
+}
+
+html[data-theme="duel"] .activity-bar-right::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -40%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(
+    to top,
+    transparent,
+    #44ee8800,
+    #44ee88,
+    #77ffaa,
+    #44ee88,
+    #44ee8800,
+    transparent
+  );
+  animation: duel-energy-v-reverse 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  z-index: 2;
+}
+
+/* Right activity bar tab glows green */
+html[data-theme="duel"] .activity-bar-right .activity-bar-tab.active {
+  box-shadow: 0 0 8px #44ee8833;
+}
+
+/* Left activity bar tab glows red */
+html[data-theme="duel"] .activity-bar-left .activity-bar-tab.active {
+  box-shadow: 0 0 8px #ee444433;
+}
+
+/* ── Duel: ambient background glow ──────────────────────────── */
+
+/* Full-viewport red/green opposing radial washes */
+html[data-theme="duel"] #root {
+  background:
+    radial-gradient(ellipse 50% 70% at 0% 50%,   #ee444412, transparent),
+    radial-gradient(ellipse 50% 70% at 100% 50%,  #44ee8812, transparent),
+    radial-gradient(ellipse 30% 50% at 0% 30%,    #ee444409, transparent),
+    radial-gradient(ellipse 30% 50% at 100% 70%,  #44ee8809, transparent),
+    var(--bg-0);
+}
+
+/* Terminal area gets a subtle green wash on the right edge */
+html[data-theme="duel"] .terminal-container {
+  background: linear-gradient(to left, #44ee8806, transparent 40%), var(--bg-0);
+}
+
+/* Topbar gradient: red-left to green-right ambient */
+html[data-theme="duel"] .topbar {
+  background:
+    linear-gradient(to right,
+      #ee444410, transparent 30%,
+      transparent 70%, #44ee8810),
+    var(--bg-1);
+}
+
+/* Status bar gradient: red-left to green-right ambient */
+html[data-theme="duel"] .status-bar {
+  background:
+    linear-gradient(to right,
+      #ee444408, transparent 30%,
+      transparent 70%, #44ee8808),
+    var(--bg-1);
+}
+
+/* ── Duel keyframes ──────────────────────────────────────────── */
+
+@keyframes duel-energy-h {
+  0%   { left: -30%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes duel-energy-h-reverse {
+  0%   { right: -30%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { right: 100%; opacity: 0; }
+}
+
+@keyframes duel-energy-v {
+  0%   { top: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes duel-energy-v-reverse {
+  0%   { bottom: -40%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { bottom: 100%; opacity: 0; }
+}
+
+/* ─── Rainbow ─────────────────────────────────────────────────── */
+html[data-theme="rainbow"] {
+  --bg-0: #0a0612;
+  --bg-1: #120e1c;
+  --bg-2: #1c1628;
+  --bg-3: #261e34;
+  --bg-hover: #261e34;
+  --bg-active: #302840;
+  --text-0: #eae8f0;
+  --text-1: #c0bcd0;
+  --text-2: #706c88;
+  --text-3: #44405a;
+  --accent: #d6a0ff;
+  --accent-dim: #d6a0ff18;
+  --green: #44dd88;
+  --green-dim: #44dd8826;
+  --red: #ff5577;
+  --red-dim: #ff557726;
+  --yellow: #ffcc44;
+  --yellow-dim: #ffcc4426;
+  --violet: #aa77ff;
+  --violet-dim: #aa77ff26;
+  --error: #ff5577;
+  --border: #ffffff10;
+  --border-light: #ffffff18;
+  --scanline-opacity: 0;
+  --accent-glow: none;
+}
+
+/* ── Rainbow: rainbow gradient on borders ─────────────────────── */
+
+/* Shared rainbow gradient value */
+html[data-theme="rainbow"] {
+  --rainbow-rainbow: linear-gradient(
+    to right,
+    #ff5577, #ff8844, #ffcc44, #44dd88, #44aaff, #aa77ff, #ff5577
+  );
+  --rainbow-rainbow-v: linear-gradient(
+    to bottom,
+    #ff5577, #ff8844, #ffcc44, #44dd88, #44aaff, #aa77ff, #ff5577
+  );
+}
+
+/* Ambient rainbow glow in the background */
+html[data-theme="rainbow"] #root {
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 20%,  #ff557708, transparent),
+    radial-gradient(ellipse 40% 40% at 30% 80%,  #ff884408, transparent),
+    radial-gradient(ellipse 40% 50% at 50% 10%,  #ffcc4406, transparent),
+    radial-gradient(ellipse 40% 40% at 70% 85%,  #44dd8808, transparent),
+    radial-gradient(ellipse 50% 40% at 85% 25%,  #44aaff08, transparent),
+    radial-gradient(ellipse 40% 50% at 95% 60%,  #aa77ff08, transparent),
+    var(--bg-0);
+}
+
+/* ── Topbar: static rainbow underline + traveling energy ────── */
+
+html[data-theme="rainbow"] .topbar {
+  border-bottom: none;
+  background:
+    linear-gradient(to right, #ff5577, #ff8844, #ffcc44, #44dd88, #44aaff, #aa77ff)
+      bottom / 100% 1px no-repeat,
+    var(--bg-1);
+  box-shadow: 0 1px 10px #aa77ff15;
+}
+
+html[data-theme="rainbow"] .topbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -25%;
+  width: 25%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    #ffffff00,
+    #ffffffcc,
+    #ffffff,
+    #ffffffcc,
+    #ffffff00,
+    transparent
+  );
+  animation: rainbow-energy-h 3.5s linear infinite;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* ── Status bar: static rainbow top-line + traveling energy ─── */
+
+html[data-theme="rainbow"] .status-bar {
+  border-top: none;
+  box-shadow: 0 -1px 10px #ff557715;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(to right, #aa77ff, #44aaff, #44dd88, #ffcc44, #ff8844, #ff5577)
+      top / 100% 1px no-repeat,
+    var(--bg-1);
+}
+
+html[data-theme="rainbow"] .status-bar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -25%;
+  width: 25%;
+  height: 2px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    #ffffff00,
+    #ffffffcc,
+    #ffffff,
+    #ffffffcc,
+    #ffffff00,
+    transparent
+  );
+  animation: rainbow-energy-h-reverse 4s linear infinite;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* ── Left activity bar: rainbow right edge ──────────────────── */
+
+html[data-theme="rainbow"] .activity-bar-left {
+  border-right: none;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(to bottom, #ff5577, #ff8844, #ffcc44, #44dd88, #44aaff, #aa77ff)
+      right / 1px 100% no-repeat,
+    var(--bg-0);
+}
+
+html[data-theme="rainbow"] .activity-bar-left::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 2px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #ffffff00,
+    #ffffffcc,
+    #ffffff,
+    #ffffffcc,
+    #ffffff00,
+    transparent
+  );
+  animation: rainbow-energy-v 3s linear infinite;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* ── Right activity bar: rainbow left edge ──────────────────── */
+
+html[data-theme="rainbow"] .activity-bar-right {
+  border-left: none;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(to bottom, #aa77ff, #44aaff, #44dd88, #ffcc44, #ff8844, #ff5577)
+      left / 1px 100% no-repeat,
+    var(--bg-0);
+}
+
+html[data-theme="rainbow"] .activity-bar-right::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -40%;
+  width: 2px;
+  height: 40%;
+  background: linear-gradient(
+    to top,
+    transparent,
+    #ffffff00,
+    #ffffffcc,
+    #ffffff,
+    #ffffffcc,
+    #ffffff00,
+    transparent
+  );
+  animation: rainbow-energy-v-reverse 3.5s linear infinite;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* ── Sidebar panels: rainbow right edge ─────────────────────── */
+
+html[data-theme="rainbow"] .session-list,
+html[data-theme="rainbow"] .process-panel,
+html[data-theme="rainbow"] .git-panel-root,
+html[data-theme="rainbow"] .file-explorer-panel,
+html[data-theme="rainbow"] .search-panel {
+  border-right: none;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(to bottom, #ff5577, #ff8844, #ffcc44, #44dd88, #44aaff, #aa77ff)
+      right / 1px 100% no-repeat,
+    var(--bg-1);
+}
+
+html[data-theme="rainbow"] .session-list::after,
+html[data-theme="rainbow"] .process-panel::after,
+html[data-theme="rainbow"] .git-panel-root::after,
+html[data-theme="rainbow"] .file-explorer-panel::after,
+html[data-theme="rainbow"] .search-panel::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: -40%;
+  width: 2px;
+  height: 40%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #ffffff00,
+    #ffffffcc,
+    #ffffff,
+    #ffffffcc,
+    #ffffff00,
+    transparent
+  );
+  animation: rainbow-energy-v 5s linear infinite;
+  z-index: 2;
+  mix-blend-mode: overlay;
+}
+
+/* Active item glow cycles through accent */
+html[data-theme="rainbow"] .session-item.active {
+  box-shadow: inset 2px 0 8px #d6a0ff22;
+}
+
+html[data-theme="rainbow"] .activity-bar-tab.active {
+  box-shadow: 0 0 8px #d6a0ff33;
+}
+
+/* ── Rainbow keyframes ─────────────────────────────────────────── */
+
+@keyframes rainbow-energy-h {
+  0%   { left: -25%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+@keyframes rainbow-energy-h-reverse {
+  0%   { right: -25%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { right: 100%; opacity: 0; }
+}
+
+@keyframes rainbow-energy-v {
+  0%   { top: -40%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes rainbow-energy-v-reverse {
+  0%   { bottom: -40%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { bottom: 100%; opacity: 0; }
+}
+
+/* ─── 80s (amber CRT retro computer) ───────────────────────────── */
+html[data-theme="80s"] {
+  /* Amber CRT monitor palette */
+  --bg-0: #0a0800;
+  --bg-1: #120e02;
+  --bg-2: #1c1604;
+  --bg-3: #261e06;
+  --bg-hover: #2a2208;
+  --bg-active: #34290a;
+  --text-0: #ffb000;
+  --text-1: #cc8c00;
+  --text-2: #886000;
+  --text-3: #554000;
+  --accent: #ffb000;
+  --accent-dim: #ffb00018;
+  --green: #33ff33;
+  --green-dim: #33ff3320;
+  --red: #ff3333;
+  --red-dim: #ff333320;
+  --yellow: #ffcc00;
+  --yellow-dim: #ffcc0020;
+  --violet: #ff6600;
+  --violet-dim: #ff660020;
+  --error: #ff3333;
+  --border: #ffb00020;
+  --border-light: #ffb00030;
+  --scanline-opacity: 0.18;
+  --accent-glow: 0 0 8px #ffb00044;
+
+  /* Sharp square corners — 80s had no rounded UI */
+  --radius: 0px;
+  --radius-sm: 0px;
+  --radius-lg: 1px;
+  --radius-pill: 1px;
+}
+
+/* ── CRT vignette — dark edges like a curved monitor ── */
+html[data-theme="80s"] #root {
+  background:
+    radial-gradient(ellipse at center, transparent 50%, #000000cc 100%),
+    var(--bg-0);
+}
+
+/* ── Phosphor glow on all text ── */
+html[data-theme="80s"] .topbar,
+html[data-theme="80s"] .status-bar,
+html[data-theme="80s"] .session-list,
+html[data-theme="80s"] .activity-bar,
+html[data-theme="80s"] .process-panel,
+html[data-theme="80s"] .git-panel-root,
+html[data-theme="80s"] .file-explorer-panel,
+html[data-theme="80s"] .search-panel,
+html[data-theme="80s"] .context-panel {
+  text-shadow: 0 0 6px #ffb00033;
+}
+
+/* ── Topbar — beveled 3D look like old OS title bars ── */
+html[data-theme="80s"] .topbar {
+  background: #12100a;
+  border-bottom: 2px solid #ffb00030;
+  box-shadow:
+    inset 0 1px 0 #ffb00018,
+    inset 0 -1px 0 #00000040,
+    0 2px 6px #00000080;
+}
+
+/* ── Status bar — thick border, raised 3D ── */
+html[data-theme="80s"] .status-bar {
+  background: #12100a;
+  border-top: 2px solid #ffb00030;
+  box-shadow:
+    inset 0 1px 0 #ffb00018,
+    0 -2px 6px #00000060;
+}
+
+/* ── Activity bars — solid double borders ── */
+html[data-theme="80s"] .activity-bar-left {
+  border-right: 2px solid #ffb00025;
+  box-shadow: inset -1px 0 0 #ffb00010;
+}
+
+html[data-theme="80s"] .activity-bar-right {
+  border-left: 2px solid #ffb00025;
+  box-shadow: inset 1px 0 0 #ffb00010;
+}
+
+/* ── Side panels — beveled inset borders ── */
+html[data-theme="80s"] .session-list,
+html[data-theme="80s"] .process-panel,
+html[data-theme="80s"] .git-panel-root,
+html[data-theme="80s"] .file-explorer-panel,
+html[data-theme="80s"] .search-panel {
+  border-right: 2px solid #ffb00018;
+  box-shadow:
+    inset 0 1px 0 #ffb00010,
+    inset 0 -1px 0 #00000030;
+}
+
+/* ── Icons — thick strokes + phosphor glow ── */
+html[data-theme="80s"] .activity-bar-tab svg,
+html[data-theme="80s"] .activity-bar-action svg,
+html[data-theme="80s"] .topbar-btn svg,
+html[data-theme="80s"] .status-bar svg {
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 3px #ffb00055);
+}
+
+/* ── Buttons — raised beveled 3D like old GUIs ── */
+html[data-theme="80s"] .topbar-btn {
+  border: 2px outset #ffb00030;
+  background: #1c1604;
+  box-shadow:
+    inset 1px 1px 0 #ffb00020,
+    inset -1px -1px 0 #00000040;
+}
+html[data-theme="80s"] .topbar-btn:hover {
+  background: #2a2208;
+  border-color: #ffb00050;
+  box-shadow:
+    inset 1px 1px 0 #ffb00030,
+    inset -1px -1px 0 #00000050,
+    0 0 8px #ffb00022;
+}
+
+html[data-theme="80s"] .status-mode-btn {
+  border: 2px outset #ffb00030;
+  background: #1c1604;
+  box-shadow:
+    inset 1px 1px 0 #ffb00020,
+    inset -1px -1px 0 #00000040;
+}
+html[data-theme="80s"] .status-mode-btn:hover {
+  background: #2a2208;
+  border-color: #ffb00050;
+}
+
+/* ── Active tab — sunken pressed button ── */
+html[data-theme="80s"] .activity-bar-tab.active,
+html[data-theme="80s"] .activity-bar-tab-active {
+  background: #1c1604;
+  box-shadow:
+    inset 2px 2px 0 #00000040,
+    inset -1px -1px 0 #ffb00015,
+    0 0 10px #ffb00020;
+}
+
+/* ── Active indicator — thick amber bar ── */
+html[data-theme="80s"] .activity-bar-left .activity-bar-tab-active::before {
+  width: 3px;
+  border-radius: 0;
+  background: #ffb000;
+  box-shadow: 0 0 6px #ffb00066;
+}
+html[data-theme="80s"] .activity-bar-right .activity-bar-tab-active::before {
+  width: 3px;
+  border-radius: 0;
+  background: #ffb000;
+  box-shadow: 0 0 6px #ffb00066;
+}
+
+/* ── Active session — amber glow stripe ── */
+html[data-theme="80s"] .session-item.active {
+  background: #ffb00012;
+  border-left: 3px solid #ffb000;
+  box-shadow: inset 0 0 12px #ffb00015;
+}
+
+/* ── Scrollbars — chunky retro style ── */
+html[data-theme="80s"] ::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+html[data-theme="80s"] ::-webkit-scrollbar-track {
+  background: #0a0800;
+  border: 1px solid #ffb00015;
+}
+html[data-theme="80s"] ::-webkit-scrollbar-thumb {
+  background: #ffb00030;
+  border: 2px outset #ffb00020;
+}
+html[data-theme="80s"] ::-webkit-scrollbar-thumb:hover {
+  background: #ffb00050;
+}
+html[data-theme="80s"] ::-webkit-scrollbar-corner {
+  background: #0a0800;
+}
+
+/* ── Pixel grid background on main area ── */
+html[data-theme="80s"] .app-body {
+  background:
+    linear-gradient(#ffb00004 1px, transparent 1px),
+    linear-gradient(90deg, #ffb00004 1px, transparent 1px),
+    var(--bg-0);
+  background-size: 8px 8px;
+}
+
+/* ── Badge — square amber ── */
+html[data-theme="80s"] .activity-bar-badge {
+  border-radius: 1px;
+  background: #ffb000;
+  color: #0a0800;
+  font-weight: 700;
+}
+
+/* ── Theme popover ── */
+html[data-theme="80s"] .status-theme-popover {
+  border: 2px outset #ffb00030;
+  box-shadow:
+    inset 1px 1px 0 #ffb00018,
+    inset -1px -1px 0 #00000040,
+    0 4px 16px #000000aa;
+}
+
+html[data-theme="80s"] .status-theme-option {
+  border-radius: 0;
+}
+
+/* ── Context menu — beveled ── */
+html[data-theme="80s"] .context-menu {
+  border: 2px outset #ffb00030;
+  border-radius: 0;
+  box-shadow:
+    inset 1px 1px 0 #ffb00018,
+    inset -1px -1px 0 #00000040,
+    0 4px 16px #000000aa;
+}
+
+html[data-theme="80s"] .context-menu-item {
+  border-radius: 0;
+}
+
+/* ─── Solarized Light ──────────────────────────────────────────── */
+html[data-theme="solarized"] {
+  --bg-0: #fdf6e3;
+  --bg-1: #eee8d5;
+  --bg-2: #e8e2cf;
+  --bg-3: #ddd6c1;
+  --bg-hover: #ddd6c1;
+  --bg-active: #d0c9b4;
+  --text-0: #073642;
+  --text-1: #586e75;
+  --text-2: #839496;
+  --text-3: #93a1a1;
+  --accent: #268bd2;
+  --accent-dim: #268bd233;
+  --green: #859900;
+  --green-dim: #85990026;
+  --red: #dc322f;
+  --red-dim: #dc322f26;
+  --yellow: #b58900;
+  --yellow-dim: #b5890026;
+  --violet: #6c71c4;
+  --violet-dim: #6c71c426;
+  --error: #dc322f;
+  --border: #ddd6c1;
+  --border-light: #ccc5af;
+  --scanline-opacity: 0;
+  --accent-glow: none;
+}

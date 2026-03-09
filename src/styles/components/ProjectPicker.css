@@ -1,0 +1,194 @@
+/* ─── Project Picker ─────────────────────────────────────── */
+
+.project-picker {
+  background: var(--bg-1);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  width: 560px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  align-self: flex-start;
+  margin-top: 16vh;
+  animation: paletteIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.project-picker-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-picker-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-0);
+  flex: 1;
+}
+
+.project-picker-count {
+  font-size: var(--text-base);
+  color: var(--text-3);
+}
+
+.project-picker-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.project-picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.project-picker-item:hover { background: var(--bg-hover); }
+.project-picker-item-attached { background: var(--accent-dim); }
+.project-picker-item-attached:hover { background: var(--accent-dim); }
+
+.project-picker-check {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  color: var(--text-2);
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.project-picker-info { flex: 1; min-width: 0; }
+
+.project-picker-name {
+  font-size: var(--text-lg);
+  font-weight: 500;
+  color: var(--text-0);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-picker-scan-badge {
+  font-size: var(--text-xs);
+  padding: 0 5px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  background: var(--bg-3);
+  color: var(--text-3);
+}
+.project-picker-scan-badge[data-status="deep"],
+.project-picker-scan-badge[data-status="full"] {
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+.project-picker-path {
+  font-size: var(--text-base);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+}
+
+.project-picker-tags {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.project-picker-delete {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  opacity: 0.4;
+  transition: background 0.1s, color 0.1s, opacity 0.1s;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.project-picker-item:hover .project-picker-delete { opacity: 1; }
+.project-picker-delete:hover {
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+.project-picker-footer {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Project Scan Badge (WorkspacePanel) ────────────────── */
+
+.project-scan-badge {
+  font-size: var(--text-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  background: var(--bg-3);
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.project-scan-badge[data-status="deep"],
+.project-scan-badge[data-status="full"] {
+  background: var(--green-dim);
+  color: var(--green);
+}
+.project-scan-badge[data-status="pending"] {
+  background: var(--yellow-dim);
+  color: var(--yellow);
+}
+
+.project-arch-info {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  margin-top: 4px;
+}
+
+.project-arch-pattern {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.project-arch-layers {
+  color: var(--text-3);
+}
+
+.project-actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: 6px;
+}
+
+.project-action-btn {
+  font-size: var(--text-sm);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  color: var(--text-2);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.project-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-0);
+}
+.project-action-delete:hover {
+  background: var(--red-dim);
+  color: var(--red);
+  border-color: var(--red);
+}

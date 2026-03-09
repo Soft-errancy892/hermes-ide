@@ -1,0 +1,8 @@
+# Default owner for everything
+* @gabrielanhaia
+
+# Rust backend
+/src-tauri/ @gabrielanhaia @joscdk
+
+# Frontend
+/src/ @gabrielanhaia @joscdk
