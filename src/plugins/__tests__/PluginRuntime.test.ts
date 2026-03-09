@@ -216,6 +216,45 @@ describe("PluginRuntime", () => {
 		});
 	});
 
+	describe("unregister", () => {
+		it("should remove a plugin entirely", async () => {
+			runtime.register(createTestPlugin());
+			expect(runtime.getPluginCount()).toBe(1);
+			await runtime.unregister("test.plugin");
+			expect(runtime.getPluginCount()).toBe(0);
+		});
+
+		it("should deactivate before unregistering", async () => {
+			const deactivate = vi.fn();
+			runtime.register(createTestPlugin({ deactivate }));
+			await runtime.activate("test.plugin");
+			await runtime.unregister("test.plugin");
+			expect(deactivate).toHaveBeenCalledOnce();
+		});
+
+		it("should clean up commands and panels", async () => {
+			const MockComponent = () => null;
+			runtime.register(createTestPlugin({
+				activate: (api) => {
+					api.commands.register("test.hello", vi.fn());
+					api.ui.registerPanel("test-panel", MockComponent as any);
+				},
+			}));
+			await runtime.activate("test.plugin");
+			expect(runtime.getAllCommands()).toHaveLength(1);
+			expect(runtime.getPanelComponent("test-panel")).toBe(MockComponent);
+
+			await runtime.unregister("test.plugin");
+			expect(runtime.getAllCommands()).toHaveLength(0);
+			expect(runtime.getPanelComponent("test-panel")).toBeUndefined();
+		});
+
+		it("should be a no-op for unknown plugins", async () => {
+			await runtime.unregister("nonexistent");
+			expect(runtime.getPluginCount()).toBe(0);
+		});
+	});
+
 	describe("subscribe", () => {
 		it("should notify listeners on register", () => {
 			const listener = vi.fn();
@@ -238,6 +277,23 @@ describe("PluginRuntime", () => {
 			unsub();
 			runtime.register(createTestPlugin());
 			expect(listener).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("partial activation rollback", () => {
+		it("should clean up commands/panels registered before activation error", async () => {
+			const plugin = createTestPlugin({
+				activate: (api) => {
+					api.commands.register("test.cmd-partial", vi.fn());
+					api.ui.registerPanel("test-partial-panel", (() => null) as any);
+					throw new Error("Boom during activation");
+				},
+			});
+			runtime.register(plugin);
+			await runtime.activate("test.plugin");
+			// The partial registrations should be rolled back
+			expect(runtime.getAllCommands()).toHaveLength(0);
+			expect(runtime.getPanelComponent("test-partial-panel")).toBeUndefined();
 		});
 	});
 });

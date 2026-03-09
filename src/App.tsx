@@ -1,8 +1,18 @@
 import { useState, useEffect, useCallback, useRef, Component, type ReactNode, type ErrorInfo } from "react";
+import React from "react";
+import ReactDOM from "react-dom";
 import { PluginRuntime } from "./plugins/PluginRuntime";
+import { PluginLoader } from "./plugins/PluginLoader";
 import { builtinPlugins } from "./plugins/builtin";
 import { usePluginRuntime } from "./plugins/usePluginRuntime";
 import { PluginPanelHost } from "./plugins/PluginPanelHost";
+
+// Expose React and ReactDOM as globals for dynamically loaded plugins.
+// Plugins are IIFE bundles that externalize React and reference window.React.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).React = React;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).ReactDOM = ReactDOM;
 import "./styles/layout.css";
 import "./styles/themes.css";
 import "./styles/topbar.css";
@@ -80,9 +90,9 @@ function AppContent() {
         dispatch({ type: "SET_LEFT_TAB", tab: "terminal" });
       },
       onPanelHide: () => setActivePluginPanel(null),
-      onToast: (message, type) => {
+      onToast: (message, type, duration) => {
         setPluginToast({ message, type });
-        setTimeout(() => setPluginToast(null), 3000);
+        setTimeout(() => setPluginToast(null), duration ?? 3000);
       },
       onStatusBarUpdate: (itemId, update) => {
         pluginRuntimeRef.current?.updateStatusBarItem(itemId, update);
@@ -98,7 +108,11 @@ function AppContent() {
   const { commands: pluginCommands, panels: pluginPanels, statusBarItems: pluginStatusBarItems } = usePluginRuntime(pluginRuntime);
 
   useEffect(() => {
-    pluginRuntime.activateStartupPlugins().catch(console.error);
+    const loader = new PluginLoader(pluginRuntime);
+    // Load external plugins from disk, then activate all startup plugins
+    loader.loadAllPlugins()
+      .then(() => pluginRuntime.activateStartupPlugins())
+      .catch(console.error);
   }, [pluginRuntime]);
 
   // When a built-in panel opens, close plugin panels

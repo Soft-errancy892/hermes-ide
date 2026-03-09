@@ -13,6 +13,7 @@ import {
 } from "../api/settings";
 import { setAnalyticsEnabled } from "../utils/analytics";
 import { SHORTCUT_GROUPS } from "./ShortcutsPanel";
+import { PluginManager } from "./PluginManager";
 
 interface SettingsProps {
   onClose: () => void;
@@ -158,6 +159,7 @@ export function Settings({ onClose, initialTab }: SettingsProps) {
     { id: "git", label: "Git" },
     { id: "autonomous", label: "Autonomous" },
     { id: "shortcuts", label: "Shortcuts" },
+    { id: "plugins", label: "Plugins" },
     { id: "privacy", label: "Privacy" },
   ];
 
@@ -471,6 +473,8 @@ export function Settings({ onClose, initialTab }: SettingsProps) {
                 </div>
               </div>
             )}
+
+            {activeTab === "plugins" && <PluginManager />}
 
             {activeTab === "privacy" && (
               <div className="settings-section">

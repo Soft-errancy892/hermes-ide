@@ -1,17 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createPluginAPI, PermissionDeniedError, type PluginAPICallbacks } from "../PluginAPI";
 
-// Polyfill localStorage for Node test environment
-const store = new Map<string, string>();
-const localStorageMock: Storage = {
-	getItem: (key: string) => store.get(key) ?? null,
-	setItem: (key: string, value: string) => { store.set(key, value); },
-	removeItem: (key: string) => { store.delete(key); },
-	clear: () => { store.clear(); },
-	get length() { return store.size; },
-	key: (index: number) => [...store.keys()][index] ?? null,
-};
-Object.defineProperty(globalThis, "localStorage", { value: localStorageMock, writable: true });
+vi.mock("@tauri-apps/api/core", () => ({
+	invoke: vi.fn(),
+}));
+
+import { invoke } from "@tauri-apps/api/core";
+const mockInvoke = vi.mocked(invoke);
 
 function createMockCallbacks(): PluginAPICallbacks {
 	return {
@@ -32,14 +27,12 @@ describe("createPluginAPI", () => {
 		callbacks = createMockCallbacks();
 		commandHandlers = new Map();
 		panelComponents = new Map();
-		store.clear();
+		mockInvoke.mockReset();
 	});
 
 	describe("permissions", () => {
 		it("should allow clipboard read when permission is granted", async () => {
 			const api = createPluginAPI("test", new Set(["clipboard.read"]), callbacks, commandHandlers, panelComponents);
-			// Note: In test environment, navigator.clipboard may not be available
-			// This test verifies the permission check passes, not the actual clipboard read
 			expect(() => api.clipboard.readText()).not.toThrow(PermissionDeniedError);
 		});
 
@@ -59,10 +52,10 @@ describe("createPluginAPI", () => {
 		});
 
 		it("should allow storage when permission is granted", async () => {
+			mockInvoke.mockResolvedValue(undefined);
 			const api = createPluginAPI("test", new Set(["storage"]), callbacks, commandHandlers, panelComponents);
 			await api.storage.set("key", "value");
-			const result = await api.storage.get("key");
-			expect(result).toBe("value");
+			expect(mockInvoke).toHaveBeenCalledWith("set_plugin_setting", { pluginId: "test", key: "key", value: "value" });
 		});
 	});
 
@@ -111,10 +104,16 @@ describe("createPluginAPI", () => {
 			expect(callbacks.onPanelHide).toHaveBeenCalledWith("panel-1");
 		});
 
-		it("should call onToast callback", () => {
+		it("should call onToast callback with duration", () => {
 			const api = createPluginAPI("test", new Set(), callbacks, commandHandlers, panelComponents);
-			api.ui.showToast("Hello", { type: "success" });
-			expect(callbacks.onToast).toHaveBeenCalledWith("Hello", "success");
+			api.ui.showToast("Hello", { type: "success", duration: 5000 });
+			expect(callbacks.onToast).toHaveBeenCalledWith("Hello", "success", 5000);
+		});
+
+		it("should call onToast with default type and undefined duration", () => {
+			const api = createPluginAPI("test", new Set(), callbacks, commandHandlers, panelComponents);
+			api.ui.showToast("Hello");
+			expect(callbacks.onToast).toHaveBeenCalledWith("Hello", "info", undefined);
 		});
 
 		it("should call onStatusBarUpdate callback", () => {
@@ -125,19 +124,26 @@ describe("createPluginAPI", () => {
 	});
 
 	describe("storage", () => {
-		it("should scope storage keys by plugin ID", async () => {
+		it("should call Tauri invoke for storage get", async () => {
+			mockInvoke.mockResolvedValue("stored-value");
 			const api = createPluginAPI("my-plugin", new Set(["storage"]), callbacks, commandHandlers, panelComponents);
-			await api.storage.set("key", "value");
-			// Verify it's stored with the correct prefix
-			expect(localStorage.getItem("plugin.my-plugin.key")).toBe("value");
+			const result = await api.storage.get("key");
+			expect(result).toBe("stored-value");
+			expect(mockInvoke).toHaveBeenCalledWith("get_plugin_setting", { pluginId: "my-plugin", key: "key" });
 		});
 
-		it("should delete storage keys", async () => {
+		it("should call Tauri invoke for storage set", async () => {
+			mockInvoke.mockResolvedValue(undefined);
 			const api = createPluginAPI("my-plugin", new Set(["storage"]), callbacks, commandHandlers, panelComponents);
 			await api.storage.set("key", "value");
+			expect(mockInvoke).toHaveBeenCalledWith("set_plugin_setting", { pluginId: "my-plugin", key: "key", value: "value" });
+		});
+
+		it("should call Tauri invoke for storage delete", async () => {
+			mockInvoke.mockResolvedValue(undefined);
+			const api = createPluginAPI("my-plugin", new Set(["storage"]), callbacks, commandHandlers, panelComponents);
 			await api.storage.delete("key");
-			const result = await api.storage.get("key");
-			expect(result).toBeNull();
+			expect(mockInvoke).toHaveBeenCalledWith("delete_plugin_setting", { pluginId: "my-plugin", key: "key" });
 		});
 	});
 });

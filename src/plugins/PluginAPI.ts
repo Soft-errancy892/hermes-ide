@@ -1,4 +1,5 @@
 import type { Disposable } from "./types";
+import { invoke } from "@tauri-apps/api/core";
 
 // Props passed to plugin panel components via React context
 export interface PluginPanelProps {
@@ -40,7 +41,7 @@ export class PermissionDeniedError extends Error {
 }
 
 export type PanelToggleCallback = (panelId: string) => void;
-export type ToastCallback = (message: string, type: string) => void;
+export type ToastCallback = (message: string, type: string, duration?: number) => void;
 export type StatusBarUpdateCallback = (itemId: string, update: { text?: string; tooltip?: string; visible?: boolean }) => void;
 
 export interface PluginAPICallbacks {
@@ -63,6 +64,9 @@ export function createPluginAPI(
 	return {
 		ui: {
 			registerPanel(panelId: string, component: React.ComponentType<PluginPanelProps>) {
+				if (panelComponents.has(panelId)) {
+					console.warn(`[Plugin:${pluginId}] Panel ID "${panelId}" is already registered — overwriting`);
+				}
 				panelComponents.set(panelId, component);
 				return {
 					dispose() {
@@ -80,7 +84,7 @@ export function createPluginAPI(
 				callbacks.onPanelToggle(panelId);
 			},
 			showToast(message: string, options?: { type?: "info" | "success" | "warning" | "error"; duration?: number }) {
-				callbacks.onToast(message, options?.type ?? "info");
+				callbacks.onToast(message, options?.type ?? "info", options?.duration);
 			},
 			updateStatusBarItem(itemId: string, update: { text?: string; tooltip?: string; visible?: boolean }) {
 				callbacks.onStatusBarUpdate(itemId, update);
@@ -88,6 +92,9 @@ export function createPluginAPI(
 		},
 		commands: {
 			register(commandId: string, handler: () => void | Promise<void>) {
+				if (commandHandlers.has(commandId)) {
+					console.warn(`[Plugin:${pluginId}] Command ID "${commandId}" is already registered — overwriting`);
+				}
 				commandHandlers.set(commandId, handler);
 				return {
 					dispose() {
@@ -119,20 +126,19 @@ export function createPluginAPI(
 				if (!permissions.has("storage")) {
 					throw new PermissionDeniedError(pluginId, "storage");
 				}
-				// Phase 1: Use localStorage scoped by plugin ID
-				return localStorage.getItem(`plugin.${pluginId}.${key}`);
+				return invoke<string | null>("get_plugin_setting", { pluginId, key });
 			},
 			async set(key: string, value: string) {
 				if (!permissions.has("storage")) {
 					throw new PermissionDeniedError(pluginId, "storage");
 				}
-				localStorage.setItem(`plugin.${pluginId}.${key}`, value);
+				await invoke("set_plugin_setting", { pluginId, key, value });
 			},
 			async delete(key: string) {
 				if (!permissions.has("storage")) {
 					throw new PermissionDeniedError(pluginId, "storage");
 				}
-				localStorage.removeItem(`plugin.${pluginId}.${key}`);
+				await invoke("delete_plugin_setting", { pluginId, key });
 			},
 		},
 		subscriptions,

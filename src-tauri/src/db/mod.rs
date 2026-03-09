@@ -2582,3 +2582,38 @@ pub fn delete_plugin_setting(
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub fn set_plugin_enabled(
+    plugin_id: String,
+    enabled: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let enabled_int: i32 = if enabled { 1 } else { 0 };
+    // Upsert into plugins table — insert if not exists, update enabled if exists
+    db.conn
+        .execute(
+            "INSERT INTO plugins (id, version, name, enabled) VALUES (?1, '', '', ?2)
+             ON CONFLICT(id) DO UPDATE SET enabled = ?2, updated_at = datetime('now')",
+            params![plugin_id, enabled_int],
+        )
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_disabled_plugin_ids(
+    state: State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db.conn
+        .prepare("SELECT id FROM plugins WHERE enabled = 0")
+        .map_err(|e| e.to_string())?;
+    let ids = stmt
+        .query_map([], |row| row.get::<_, String>(0))
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(ids)
+}

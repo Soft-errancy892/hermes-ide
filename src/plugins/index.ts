@@ -4,3 +4,4 @@ export type { PluginManifest, PluginContributions, PluginCommandContribution, Pl
 export type { HermesPluginAPI, PluginPanelProps } from "./PluginAPI";
 export { PluginPanelHost } from "./PluginPanelHost";
 export { usePluginRuntime } from "./usePluginRuntime";
+export { PluginLoader } from "./PluginLoader";

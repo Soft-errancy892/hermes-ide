@@ -3,6 +3,7 @@ mod db;
 mod git;
 mod menu;
 mod platform;
+mod plugins;
 mod process;
 mod pty;
 mod realm;
@@ -278,6 +279,8 @@ pub fn run() {
             db::get_plugin_setting,
             db::set_plugin_setting,
             db::delete_plugin_setting,
+            db::set_plugin_enabled,
+            db::get_disabled_plugin_ids,
             // Workspace
             workspace::scan_directory,
             workspace::detect_project,
@@ -345,6 +348,12 @@ pub fn run() {
             // Menu
             menu::show_context_menu,
             menu::update_menu_state,
+            // Plugins
+            plugins::list_installed_plugins,
+            plugins::read_plugin_bundle,
+            plugins::get_plugins_dir,
+            plugins::uninstall_plugin,
+            plugins::install_plugin,
             // Clipboard
             clipboard::copy_image_to_clipboard,
         ])

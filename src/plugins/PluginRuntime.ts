@@ -53,6 +53,11 @@ export class PluginRuntime {
 		entry.status = "activating";
 		this.notify();
 
+		// Snapshot registered commands/panels before activation so we can
+		// roll back partial registrations if activate() throws.
+		const cmdsBefore = new Set(this.commandHandlers.keys());
+		const panelsBefore = new Set(this.panelComponents.keys());
+
 		try {
 			const permissions = new Set<string>(entry.module.manifest.permissions ?? []);
 			const api = createPluginAPI(
@@ -69,6 +74,22 @@ export class PluginRuntime {
 			entry.status = "error";
 			entry.error = err instanceof Error ? err : new Error(String(err));
 			console.error(`[PluginRuntime] Failed to activate "${pluginId}":`, err);
+
+			// Roll back any commands/panels registered before the error
+			for (const cmd of this.commandHandlers.keys()) {
+				if (!cmdsBefore.has(cmd)) this.commandHandlers.delete(cmd);
+			}
+			for (const panel of this.panelComponents.keys()) {
+				if (!panelsBefore.has(panel)) this.panelComponents.delete(panel);
+			}
+
+			// Dispose subscriptions added during partial activation
+			if (entry.api) {
+				for (const sub of entry.api.subscriptions) {
+					try { sub.dispose(); } catch {}
+				}
+				entry.api = null;
+			}
 		}
 		this.notify();
 	}
@@ -92,6 +113,29 @@ export class PluginRuntime {
 
 		entry.api = null;
 		entry.status = "inactive";
+		this.notify();
+	}
+
+	async unregister(pluginId: string): Promise<void> {
+		const entry = this.plugins.get(pluginId);
+		if (!entry) return;
+
+		if (entry.status === "active") {
+			await this.deactivate(pluginId);
+		}
+
+		// Clean up any registered commands and panels from this plugin
+		for (const cmd of entry.module.manifest.contributes.commands ?? []) {
+			this.commandHandlers.delete(cmd.command);
+		}
+		for (const panel of entry.module.manifest.contributes.panels ?? []) {
+			this.panelComponents.delete(panel.id);
+		}
+		for (const item of entry.module.manifest.contributes.statusBarItems ?? []) {
+			this.statusBarOverrides.delete(item.id);
+		}
+
+		this.plugins.delete(pluginId);
 		this.notify();
 	}
 
