@@ -12,46 +12,32 @@ const mockInvoke = vi.mocked(invoke);
 describe("downloadAndInstallPlugin", () => {
     beforeEach(() => {
         mockInvoke.mockReset();
-        vi.stubGlobal("fetch", vi.fn());
     });
 
-    it("downloads and passes bytes to Rust", async () => {
-        const mockArrayBuffer = new ArrayBuffer(8);
-        const mockResponse = {
-            ok: true,
-            arrayBuffer: () => Promise.resolve(mockArrayBuffer),
-        };
-        (globalThis.fetch as any).mockResolvedValue(mockResponse);
+    it("calls Rust download_and_install_plugin command", async () => {
         mockInvoke.mockResolvedValue("test-plugin-id");
 
         const result = await downloadAndInstallPlugin("https://example.com/plugin.tgz");
 
-        expect(globalThis.fetch).toHaveBeenCalledWith("https://example.com/plugin.tgz");
-        expect(mockInvoke).toHaveBeenCalledWith("install_plugin", { data: expect.any(Array) });
+        expect(mockInvoke).toHaveBeenCalledWith("download_and_install_plugin", { url: "https://example.com/plugin.tgz" });
         expect(result).toBe("test-plugin-id");
     });
 
     it("calls progress callback", async () => {
-        const mockResponse = {
-            ok: true,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-        };
-        (globalThis.fetch as any).mockResolvedValue(mockResponse);
         mockInvoke.mockResolvedValue("test-id");
 
         const onProgress = vi.fn();
         await downloadAndInstallPlugin("https://example.com/plugin.tgz", onProgress);
 
         expect(onProgress).toHaveBeenCalledWith("downloading");
-        expect(onProgress).toHaveBeenCalledWith("extracting");
         expect(onProgress).toHaveBeenCalledWith("done");
     });
 
-    it("throws on download failure", async () => {
-        (globalThis.fetch as any).mockResolvedValue({ ok: false, status: 404, statusText: "Not Found" });
+    it("throws on Rust error", async () => {
+        mockInvoke.mockRejectedValue(new Error("Download failed: HTTP 404"));
 
         await expect(
             downloadAndInstallPlugin("https://example.com/missing.tgz")
-        ).rejects.toThrow("Download failed: 404 Not Found");
+        ).rejects.toThrow("Download failed: HTTP 404");
     });
 });

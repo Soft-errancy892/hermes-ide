@@ -543,7 +543,7 @@ function AppContent() {
       )}
 
       {settingsOpen && (
-        <Settings onClose={() => setSettingsOpen(null)} initialTab={settingsOpen} />
+        <Settings onClose={() => setSettingsOpen(null)} initialTab={settingsOpen} pluginRuntime={pluginRuntime} />
       )}
 
       {workspaceOpen && (

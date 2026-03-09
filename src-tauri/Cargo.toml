@@ -45,6 +45,7 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 arboard = { version = "3", features = ["image-data"] }
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp", "bmp", "tiff"] }
 flate2 = "1"
+reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
 tar = "0.4"
 
 [dev-dependencies]

@@ -18,11 +18,12 @@ import { PluginManager } from "./PluginManager";
 interface SettingsProps {
   onClose: () => void;
   initialTab?: string;
+  pluginRuntime?: import("../plugins/PluginRuntime").PluginRuntime;
 }
 
 const THEMES = THEME_OPTIONS;
 
-export function Settings({ onClose, initialTab }: SettingsProps) {
+export function Settings({ onClose, initialTab, pluginRuntime }: SettingsProps) {
   const [settings, setSettings] = useState<SettingsMap>({});
   const [shells, setShells] = useState<{ name: string; path: string }[]>([]);
   const [activeTab, setActiveTab] = useState(initialTab || "general");
@@ -474,7 +475,7 @@ export function Settings({ onClose, initialTab }: SettingsProps) {
               </div>
             )}
 
-            {activeTab === "plugins" && <PluginManager />}
+            {activeTab === "plugins" && <PluginManager runtime={pluginRuntime} />}
 
             {activeTab === "privacy" && (
               <div className="settings-section">

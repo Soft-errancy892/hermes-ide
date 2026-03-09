@@ -237,6 +237,26 @@ pub fn install_plugin(app: tauri::AppHandle, data: Vec<u8>) -> Result<String, St
     Ok(plugin_id)
 }
 
+/// Download a plugin .tgz from a URL and install it.
+/// The download happens in Rust to bypass WebView CSP restrictions.
+#[tauri::command]
+pub async fn download_and_install_plugin(app: tauri::AppHandle, url: String) -> Result<String, String> {
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Download failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download failed: HTTP {}", response.status()));
+    }
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+
+    install_plugin(app, bytes.to_vec())
+}
+
 fn find_manifest_in_dir(dir: &std::path::Path) -> Result<(PathBuf, String), String> {
     // Check root
     let root_manifest = dir.join("hermes-plugin.json");

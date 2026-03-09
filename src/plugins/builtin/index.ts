@@ -1,6 +1,4 @@
 import type { PluginModule } from "../PluginRuntime";
-import { jsonFormatterPlugin } from "./json-formatter";
 
-export const builtinPlugins: PluginModule[] = [
-	jsonFormatterPlugin,
-];
+// Built-in plugins removed — all plugins now install from the registry.
+export const builtinPlugins: PluginModule[] = [];

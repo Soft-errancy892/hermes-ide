@@ -354,6 +354,7 @@ pub fn run() {
             plugins::get_plugins_dir,
             plugins::uninstall_plugin,
             plugins::install_plugin,
+            plugins::download_and_install_plugin,
             // Clipboard
             clipboard::copy_image_to_clipboard,
         ])
