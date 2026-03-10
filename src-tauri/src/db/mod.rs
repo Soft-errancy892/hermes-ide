@@ -2620,6 +2620,29 @@ pub fn cleanup_plugin_data(
 }
 
 #[tauri::command]
+pub fn get_plugin_settings_batch(
+    plugin_id: String,
+    state: State<'_, AppState>,
+) -> Result<std::collections::HashMap<String, String>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let mut stmt = db.conn
+        .prepare("SELECT key, value FROM plugin_storage WHERE plugin_id = ?1 AND key LIKE '__setting:%'")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![plugin_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })
+        .map_err(|e| e.to_string())?;
+    let mut map = std::collections::HashMap::new();
+    for row in rows {
+        if let Ok((k, v)) = row {
+            map.insert(k.trim_start_matches("__setting:").to_string(), v);
+        }
+    }
+    Ok(map)
+}
+
+#[tauri::command]
 pub fn get_disabled_plugin_ids(
     state: State<'_, AppState>,
 ) -> Result<Vec<String>, String> {

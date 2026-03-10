@@ -282,6 +282,7 @@ pub fn run() {
             db::set_plugin_enabled,
             db::get_disabled_plugin_ids,
             db::cleanup_plugin_data,
+            db::get_plugin_settings_batch,
             // Workspace
             workspace::scan_directory,
             workspace::detect_project,

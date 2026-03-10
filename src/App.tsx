@@ -76,6 +76,10 @@ function AppContent() {
   const updater = useAutoUpdater();
   const activeGitSummary = useSessionGitSummary(state.activeSessionId, !!activeSession);
 
+  // Keep a ref to state so plugin callbacks always read fresh values
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   // ── Plugin System ──
   const [activePluginPanel, setActivePluginPanel] = useState<string | null>(null);
   const [pluginToast, setPluginToast] = useState<{ message: string; type: string } | null>(null);
@@ -97,6 +101,25 @@ function AppContent() {
       onStatusBarUpdate: (itemId, update) => {
         pluginRuntimeRef.current?.updateStatusBarItem(itemId, update);
       },
+      onNotification: async (options) => {
+        try {
+          const { sendNotification } = await import("@tauri-apps/plugin-notification");
+          await sendNotification(options);
+        } catch {
+          setPluginToast({ message: options.title + (options.body ? `: ${options.body}` : ""), type: "info" });
+          setTimeout(() => setPluginToast(null), 3000);
+        }
+      },
+      onSessionsGetActive: async () => {
+        const s = stateRef.current;
+        const id = s.activeSessionId;
+        if (!id || !s.sessions[id]) return null;
+        return { id, name: s.sessions[id].label };
+      },
+      onSessionsList: async () => {
+        const s = stateRef.current;
+        return Object.entries(s.sessions).map(([id, sess]) => ({ id, name: sess.label }));
+      },
     });
     pluginRuntimeRef.current = runtime;
     for (const plugin of builtinPlugins) {
@@ -114,6 +137,37 @@ function AppContent() {
       .then(() => pluginRuntime.activateStartupPlugins())
       .catch(console.error);
   }, [pluginRuntime]);
+
+  // ── Emit plugin events: window focus/blur ──
+  useEffect(() => {
+    const win = getCurrentWindow();
+    let cancelled = false;
+    let unlistenFn: (() => void) | null = null;
+    win.onFocusChanged(({ payload: focused }) => {
+      if (cancelled) return;
+      pluginRuntime.emitEvent(focused ? "window.focused" : "window.blurred");
+    }).then((u) => {
+      if (cancelled) { u(); } else { unlistenFn = u; }
+    });
+    return () => { cancelled = true; unlistenFn?.(); };
+  }, [pluginRuntime]);
+
+  // ── Emit plugin events: session created/closed ──
+  const prevSessionIds = useRef(new Set<string>());
+  useEffect(() => {
+    const currentIds = new Set(Object.keys(state.sessions));
+    for (const id of currentIds) {
+      if (!prevSessionIds.current.has(id)) {
+        pluginRuntime.emitEvent("session.created", id);
+      }
+    }
+    for (const id of prevSessionIds.current) {
+      if (!currentIds.has(id)) {
+        pluginRuntime.emitEvent("session.closed", id);
+      }
+    }
+    prevSessionIds.current = currentIds;
+  }, [state.sessions, pluginRuntime]);
 
   // When a built-in panel opens, close plugin panels
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { PluginManifest, PluginCommandContribution, PluginPanelContribution, PluginStatusBarItem } from "./types";
+import type { PluginManifest, PluginCommandContribution, PluginPanelContribution, PluginStatusBarItem, HermesEvent } from "./types";
 import { createPluginAPI, type HermesPluginAPI, type PluginPanelProps, type PluginAPICallbacks } from "./PluginAPI";
 
 export type PluginActivateFn = (api: HermesPluginAPI) => void | Promise<void>;
@@ -30,6 +30,8 @@ export class PluginRuntime {
 	private panelComponents = new Map<string, React.ComponentType<PluginPanelProps>>();
 	private statusBarOverrides = new Map<string, { text?: string; tooltip?: string; visible?: boolean }>();
 	private changeListeners = new Set<() => void>();
+	private settingsListeners = new Map<string, Map<string, Set<(value: string | number | boolean) => void>>>();
+	private eventListeners = new Map<HermesEvent, Set<(...args: unknown[]) => void>>();
 	private callbacks: PluginAPICallbacks;
 
 	constructor(callbacks: PluginAPICallbacks) {
@@ -60,10 +62,21 @@ export class PluginRuntime {
 
 		try {
 			const permissions = new Set<string>(entry.module.manifest.permissions ?? []);
+			const settingsSchema = entry.module.manifest.contributes.settings;
+			const fullCallbacks: PluginAPICallbacks = {
+				...this.callbacks,
+				onSettingChanged: (pid: string, key: string, value: string | number | boolean) => {
+					this.notifySettingChanged(pid, key, value);
+				},
+				onEventSubscribe: (event: HermesEvent, callback: (...args: unknown[]) => void) => {
+					return this.subscribeEvent(event, callback);
+				},
+			};
 			const api = createPluginAPI(
 				pluginId,
 				permissions,
-				this.callbacks,
+				settingsSchema,
+				fullCallbacks,
 				this.commandHandlers,
 				this.panelComponents,
 			);
@@ -145,6 +158,43 @@ export class PluginRuntime {
 			if (hasStartup && entry.status === "registered") {
 				await this.activate(id);
 			}
+		}
+	}
+
+	// ─── Settings & Events ────────────────────────────────────
+
+	notifySettingChanged(pluginId: string, key: string, value: string | number | boolean): void {
+		const pluginListeners = this.settingsListeners.get(pluginId);
+		if (!pluginListeners) return;
+		const keyListeners = pluginListeners.get(key);
+		if (!keyListeners) return;
+		for (const cb of keyListeners) {
+			try { cb(value); } catch { /* swallow */ }
+		}
+	}
+
+	private subscribeEvent(event: HermesEvent, callback: (...args: unknown[]) => void): { dispose(): void } {
+		let listeners = this.eventListeners.get(event);
+		if (!listeners) {
+			listeners = new Set();
+			this.eventListeners.set(event, listeners);
+		}
+		listeners.add(callback);
+		return {
+			dispose: () => {
+				listeners!.delete(callback);
+				if (listeners!.size === 0) {
+					this.eventListeners.delete(event);
+				}
+			},
+		};
+	}
+
+	emitEvent(event: HermesEvent, ...args: unknown[]): void {
+		const listeners = this.eventListeners.get(event);
+		if (!listeners) return;
+		for (const cb of listeners) {
+			try { cb(...args); } catch { /* swallow */ }
 		}
 	}
 

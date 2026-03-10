@@ -174,9 +174,10 @@ describe("PluginRuntime", () => {
 	});
 
 	describe("panels", () => {
-		it("should return panels from registered plugins", () => {
+		it("should return panels from active plugins", async () => {
 			const plugin = createTestPlugin();
 			runtime.register(plugin);
+			await runtime.activate("test.plugin");
 			const panels = runtime.getAllPanels();
 			expect(panels).toHaveLength(1);
 			expect(panels[0].id).toBe("test-panel");

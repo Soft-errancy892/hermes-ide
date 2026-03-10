@@ -6,6 +6,7 @@ import { downloadAndInstallPlugin, type InstallPhase } from "../plugins/pluginIn
 import { hasUpdate, meetsMinVersion } from "../plugins/semver";
 import { PluginLoader } from "../plugins/PluginLoader";
 import type { PluginRuntime } from "../plugins/PluginRuntime";
+import { PluginSettingsForm } from "./PluginSettingsForm";
 
 interface InstalledPluginInfo {
 	id: string;
@@ -359,6 +360,13 @@ export function PluginManager({ runtime }: { runtime?: PluginRuntime }) {
 									<span key={perm} className="pm-detail-perm">{perm}</span>
 								))}
 							</div>
+						)}
+						{p.manifest.contributes.settings && Object.keys(p.manifest.contributes.settings).length > 0 && (
+							<PluginSettingsForm
+								pluginId={p.manifest.id}
+								schema={p.manifest.contributes.settings}
+								runtime={runtime}
+							/>
 						)}
 						<div className="pm-detail-actions">
 							<button

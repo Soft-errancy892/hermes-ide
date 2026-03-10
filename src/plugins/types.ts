@@ -20,6 +20,7 @@ export interface PluginContributions {
 	commands?: PluginCommandContribution[];
 	panels?: PluginPanelContribution[];
 	statusBarItems?: PluginStatusBarItem[];
+	settings?: PluginSettingsSchema;
 }
 
 export interface PluginCommandContribution {
@@ -53,6 +54,57 @@ export type PluginPermission =
 	| "terminal.write"
 	| "sessions.read"
 	| "notifications";
+
+// ─── Plugin Settings Schema ──────────────────────────────
+
+export interface PluginSettingsSchema {
+	[key: string]: PluginSettingDefinition;
+}
+
+export type PluginSettingDefinition =
+	| PluginSettingString
+	| PluginSettingNumber
+	| PluginSettingBoolean
+	| PluginSettingSelect;
+
+interface PluginSettingBase {
+	title: string;
+	description?: string;
+	order?: number;
+}
+
+export interface PluginSettingString extends PluginSettingBase {
+	type: "string";
+	default: string;
+	placeholder?: string;
+	maxLength?: number;
+}
+
+export interface PluginSettingNumber extends PluginSettingBase {
+	type: "number";
+	default: number;
+	min?: number;
+	max?: number;
+	step?: number;
+}
+
+export interface PluginSettingBoolean extends PluginSettingBase {
+	type: "boolean";
+	default: boolean;
+}
+
+export interface PluginSettingSelect extends PluginSettingBase {
+	type: "select";
+	default: string;
+	options: { value: string; label: string }[];
+}
+
+export type HermesEvent =
+	| "theme.changed"
+	| "session.created"
+	| "session.closed"
+	| "window.focused"
+	| "window.blurred";
 
 export interface Disposable {
 	dispose(): void;

@@ -1,4 +1,4 @@
-import type { Disposable } from "./types";
+import type { Disposable, PluginSettingsSchema, HermesEvent } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 
 // Props passed to plugin panel components via React context
@@ -30,6 +30,22 @@ export interface HermesPluginAPI {
 		set(key: string, value: string): Promise<void>;
 		delete(key: string): Promise<void>;
 	};
+	settings: {
+		get<T = string | number | boolean>(key: string): Promise<T>;
+		update(key: string, value: string | number | boolean): Promise<void>;
+		onDidChange(key: string, callback: (newValue: string | number | boolean) => void): Disposable;
+		getAll(): Promise<Record<string, string | number | boolean>>;
+	};
+	events: {
+		on(event: HermesEvent, callback: (...args: unknown[]) => void): Disposable;
+	};
+	notifications: {
+		send(options: { title: string; body?: string }): Promise<void>;
+	};
+	sessions: {
+		getActive(): Promise<{ id: string; name: string } | null>;
+		list(): Promise<{ id: string; name: string }[]>;
+	};
 	subscriptions: Disposable[];
 }
 
@@ -50,16 +66,24 @@ export interface PluginAPICallbacks {
 	onPanelHide: PanelToggleCallback;
 	onToast: ToastCallback;
 	onStatusBarUpdate: StatusBarUpdateCallback;
+	onSettingChanged?: (pluginId: string, key: string, value: string | number | boolean) => void;
+	onEventSubscribe?: (event: HermesEvent, callback: (...args: unknown[]) => void) => Disposable;
+	onNotification?: (options: { title: string; body?: string }) => Promise<void>;
+	onSessionsGetActive?: () => Promise<{ id: string; name: string } | null>;
+	onSessionsList?: () => Promise<{ id: string; name: string }[]>;
 }
 
 export function createPluginAPI(
 	pluginId: string,
 	permissions: Set<string>,
+	settingsSchema: PluginSettingsSchema | undefined,
 	callbacks: PluginAPICallbacks,
 	commandHandlers: Map<string, () => void | Promise<void>>,
 	panelComponents: Map<string, React.ComponentType<PluginPanelProps>>,
 ): HermesPluginAPI {
 	const subscriptions: Disposable[] = [];
+	const schema = settingsSchema ?? {};
+	const settingsChangeListeners = new Map<string, Set<(value: string | number | boolean) => void>>();
 
 	return {
 		ui: {
@@ -132,6 +156,9 @@ export function createPluginAPI(
 				if (!permissions.has("storage")) {
 					throw new PermissionDeniedError(pluginId, "storage");
 				}
+				if (key.startsWith("__setting:")) {
+					throw new Error(`Plugin "${pluginId}": storage key "${key}" is reserved. Use api.settings.update() instead.`);
+				}
 				await invoke("set_plugin_setting", { pluginId, key, value });
 			},
 			async delete(key: string) {
@@ -139,6 +166,145 @@ export function createPluginAPI(
 					throw new PermissionDeniedError(pluginId, "storage");
 				}
 				await invoke("delete_plugin_setting", { pluginId, key });
+			},
+		},
+		settings: {
+			async get<T = string | number | boolean>(key: string): Promise<T> {
+				const def = schema[key];
+				if (!def) return undefined as unknown as T;
+
+				const stored = await invoke<string | null>("get_plugin_setting", {
+					pluginId,
+					key: `__setting:${key}`,
+				});
+
+				if (stored === null || stored === undefined) {
+					return def.default as unknown as T;
+				}
+
+				if (def.type === "number") return parseFloat(stored) as unknown as T;
+				if (def.type === "boolean") return (stored === "true") as unknown as T;
+				return stored as unknown as T;
+			},
+			async update(key: string, value: string | number | boolean) {
+				const def = schema[key];
+				if (!def) {
+					throw new Error(`Plugin "${pluginId}": unknown setting key "${key}".`);
+				}
+
+				const valueType = typeof value;
+				if (def.type === "number") {
+					if (valueType !== "number") {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" expects a number, got ${valueType}.`);
+					}
+					if (def.min !== undefined && (value as number) < def.min) {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" value ${value} is below minimum ${def.min}.`);
+					}
+					if (def.max !== undefined && (value as number) > def.max) {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" value ${value} is above maximum ${def.max}.`);
+					}
+				} else if (def.type === "boolean") {
+					if (valueType !== "boolean") {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" expects a boolean, got ${valueType}.`);
+					}
+				} else if (def.type === "select") {
+					if (!def.options.some((o) => o.value === value)) {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" value "${value}" is not a valid option.`);
+					}
+				} else if (def.type === "string") {
+					if (valueType !== "string") {
+						throw new Error(`Plugin "${pluginId}": setting "${key}" expects a string, got ${valueType}.`);
+					}
+				}
+
+				await invoke("set_plugin_setting", {
+					pluginId,
+					key: `__setting:${key}`,
+					value: String(value),
+				});
+
+				callbacks.onSettingChanged?.(pluginId, key, value);
+
+				// Notify local listeners
+				const listeners = settingsChangeListeners.get(key);
+				if (listeners) {
+					for (const cb of listeners) {
+						try { cb(value); } catch { /* swallow */ }
+					}
+				}
+			},
+			onDidChange(key: string, callback: (newValue: string | number | boolean) => void): Disposable {
+				let listeners = settingsChangeListeners.get(key);
+				if (!listeners) {
+					listeners = new Set();
+					settingsChangeListeners.set(key, listeners);
+				}
+				listeners.add(callback);
+				return {
+					dispose() {
+						listeners!.delete(callback);
+						if (listeners!.size === 0) {
+							settingsChangeListeners.delete(key);
+						}
+					},
+				};
+			},
+			async getAll(): Promise<Record<string, string | number | boolean>> {
+				const result: Record<string, string | number | boolean> = {};
+				for (const [key, def] of Object.entries(schema)) {
+					const stored = await invoke<string | null>("get_plugin_setting", {
+						pluginId,
+						key: `__setting:${key}`,
+					});
+					if (stored === null || stored === undefined) {
+						result[key] = def.default;
+					} else if (def.type === "number") {
+						result[key] = parseFloat(stored);
+					} else if (def.type === "boolean") {
+						result[key] = stored === "true";
+					} else {
+						result[key] = stored;
+					}
+				}
+				return result;
+			},
+		},
+		events: {
+			on(event: HermesEvent, callback: (...args: unknown[]) => void): Disposable {
+				if (callbacks.onEventSubscribe) {
+					return callbacks.onEventSubscribe(event, callback);
+				}
+				return { dispose() {} };
+			},
+		},
+		notifications: {
+			async send(options: { title: string; body?: string }) {
+				if (!permissions.has("notifications")) {
+					throw new PermissionDeniedError(pluginId, "notifications");
+				}
+				if (callbacks.onNotification) {
+					await callbacks.onNotification(options);
+				}
+			},
+		},
+		sessions: {
+			async getActive() {
+				if (!permissions.has("sessions.read")) {
+					throw new PermissionDeniedError(pluginId, "sessions.read");
+				}
+				if (callbacks.onSessionsGetActive) {
+					return callbacks.onSessionsGetActive();
+				}
+				return null;
+			},
+			async list() {
+				if (!permissions.has("sessions.read")) {
+					throw new PermissionDeniedError(pluginId, "sessions.read");
+				}
+				if (callbacks.onSessionsList) {
+					return callbacks.onSessionsList();
+				}
+				return [];
 			},
 		},
 		subscriptions,

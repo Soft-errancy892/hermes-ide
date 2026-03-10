@@ -1,0 +1,25 @@
+{
+  "name": "@hermes-hq/plugin-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript types and utilities for Hermes IDE plugins",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/react": "^18.0.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hermes-hq/plugins"
+  },
+  "keywords": ["hermes", "ide", "plugin", "sdk", "types"]
+}
