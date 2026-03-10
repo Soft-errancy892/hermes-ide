@@ -5,6 +5,10 @@ name: Build & Test
 on:
   workflow_dispatch:
 
+concurrency:
+  group: build
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
