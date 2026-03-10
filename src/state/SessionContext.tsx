@@ -3,6 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 
 // Module-level guard to prevent React StrictMode from double-restoring sessions
 let workspaceRestoreStarted = false;
+// Guard to prevent periodic save from writing during workspace restore
+let workspaceRestoreInProgress = false;
 import {
   createSession as apiCreateSession, closeSession as apiCloseSession,
   getSessions, getRecentSessions, getSessionSnapshot,
@@ -35,26 +37,39 @@ import type {
   SessionData, SessionHistoryEntry, ExecutionMode, CreateSessionOpts, SessionAction,
   SavedWorkspace, SavedSessionInfo,
 } from "../types/session";
+import { SAVED_WORKSPACE_VERSION, validateSavedWorkspace } from "../types/session";
 
 // ─── Workspace Restore Helpers ───────────────────────────────────────
 
-/** Deep-clone a LayoutNode tree, replacing old session IDs with new ones. */
+/** Deep-clone a LayoutNode tree, replacing old session IDs with new ones.
+ *  Gracefully handles malformed layout data that doesn't match the expected shape. */
 function remapLayoutSessionIds(node: LayoutNode, oldToNew: Map<string, string>): LayoutNode | null {
+  if (!node || typeof node !== "object" || !node.type) return null;
+
   if (node.type === "pane") {
-    const newId = oldToNew.get(node.sessionId);
+    if (typeof (node as PaneLeaf).sessionId !== "string") return null;
+    const newId = oldToNew.get((node as PaneLeaf).sessionId);
     if (!newId) return null; // Session wasn't restored — remove this pane
     return { ...node, id: nextPaneId(), sessionId: newId };
   }
-  const left = remapLayoutSessionIds(node.children[0], oldToNew);
-  const right = remapLayoutSessionIds(node.children[1], oldToNew);
-  if (!left && !right) return null;
-  if (!left) return right;
-  if (!right) return left;
-  return {
-    ...node,
-    id: nextSplitId(),
-    children: [left, right],
-  };
+
+  if (node.type === "split") {
+    const split = node as { children?: unknown[] };
+    if (!Array.isArray(split.children) || split.children.length < 2) return null;
+    const left = remapLayoutSessionIds(split.children[0] as LayoutNode, oldToNew);
+    const right = remapLayoutSessionIds(split.children[1] as LayoutNode, oldToNew);
+    if (!left && !right) return null;
+    if (!left) return right;
+    if (!right) return left;
+    return {
+      ...node,
+      id: nextSplitId(),
+      children: [left, right],
+    };
+  }
+
+  // Unknown node type — skip
+  return null;
 }
 
 /** The focused pane ID gets regenerated, so find the first pane in the tree. */
@@ -704,81 +719,109 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // Guard against React StrictMode double-mount
         if (workspaceRestoreStarted) return;
         workspaceRestoreStarted = true;
+        workspaceRestoreInProgress = true;
 
-        let workspace: SavedWorkspace;
         try {
-          workspace = JSON.parse(savedJson);
-        } catch {
-          return; // Corrupt JSON — skip restore
-        }
-        if (!workspace.sessions?.length) return;
-
-        // Clear the saved workspace immediately to prevent double-restore
-        setSetting("saved_workspace", "").catch(console.error);
-
-        // Re-create each saved session
-        const oldToNew = new Map<string, string>();
-        for (const saved of workspace.sessions) {
+          let parsed: unknown;
           try {
-            const newSession = await apiCreateSession({
-              sessionId: null,
-              label: saved.label,
-              workingDirectory: saved.working_directory,
-              color: saved.color,
-              workspacePaths: null,
-              aiProvider: saved.ai_provider,
-              realmIds: saved.project_ids.length > 0 ? saved.project_ids : null,
-              autoApprove: false,
-            });
-            await createTerminal(newSession.id, newSession.color);
-
-            // Restore description if present
-            if (saved.description) {
-              updateSessionDescription(newSession.id, saved.description).catch(console.error);
-            }
-
-            // Restore group if present
-            if (saved.group) {
-              updateSessionGroup(newSession.id, saved.group).catch(console.error);
-            }
-
-            // Restore scrollback from the old session's snapshot
-            try {
-              const snapshot = await getSessionSnapshot(saved.id);
-              if (snapshot) {
-                writeScrollback(newSession.id, snapshot);
-              }
-            } catch {
-              console.warn("[SessionContext] Failed to restore scrollback for", saved.label);
-            }
-
-            dispatch({ type: "SESSION_UPDATED", session: newSession });
-            oldToNew.set(saved.id, newSession.id);
-          } catch (err) {
-            console.warn("[SessionContext] Failed to restore session:", saved.label, err);
+            parsed = JSON.parse(savedJson);
+          } catch {
+            console.warn("[SessionContext] Corrupt workspace JSON — skipping restore");
+            return;
           }
-        }
 
-        if (oldToNew.size === 0) return;
+          // Validate structure before using it
+          const workspace = validateSavedWorkspace(parsed);
+          if (!workspace) {
+            console.warn("[SessionContext] Invalid workspace structure — skipping restore");
+            return;
+          }
 
-        // Rebuild the layout with remapped session IDs
-        if (workspace.layout) {
-          const remappedLayout = remapLayoutSessionIds(workspace.layout as LayoutNode, oldToNew);
-          const remappedFocus = remappedLayout ? remapPaneFocusId(remappedLayout, workspace.focused_pane_id) : null;
-          const remappedActive = workspace.active_session_id ? (oldToNew.get(workspace.active_session_id) ?? null) : null;
-          dispatch({
-            type: "RESTORE_LAYOUT",
-            root: remappedLayout,
-            focusedPaneId: remappedFocus,
-            activeSessionId: remappedActive || oldToNew.values().next().value || null,
-          });
-        } else {
-          // No layout saved — just activate the first restored session
-          const firstNewId = oldToNew.values().next().value;
-          if (firstNewId) dispatch({ type: "SET_ACTIVE", id: firstNewId });
+          // DO NOT clear saved_workspace here — keep it as backup until restore completes.
+          // If the app crashes mid-restore, the next launch can retry from the same data.
+
+          // Re-create each saved session
+          const oldToNew = new Map<string, string>();
+          for (const saved of workspace.sessions) {
+            try {
+              const newSession = await apiCreateSession({
+                sessionId: null,
+                label: saved.label,
+                workingDirectory: saved.working_directory,
+                color: saved.color,
+                workspacePaths: null,
+                aiProvider: saved.ai_provider,
+                realmIds: saved.project_ids.length > 0 ? saved.project_ids : null,
+                autoApprove: false,
+              });
+              await createTerminal(newSession.id, newSession.color);
+
+              // Restore description and group — await them to ensure they persist
+              const metaPromises: Promise<void>[] = [];
+              if (saved.description) {
+                metaPromises.push(
+                  updateSessionDescription(newSession.id, saved.description)
+                    .then(() => { newSession.description = saved.description; })
+                    .catch((err) => console.warn("[SessionContext] Failed to restore description:", err))
+                );
+              }
+              if (saved.group) {
+                metaPromises.push(
+                  updateSessionGroup(newSession.id, saved.group)
+                    .then(() => { newSession.group = saved.group; })
+                    .catch((err) => console.warn("[SessionContext] Failed to restore group:", err))
+                );
+              }
+              await Promise.all(metaPromises);
+
+              // Restore scrollback from the old session's snapshot
+              try {
+                const snapshot = await getSessionSnapshot(saved.id);
+                if (snapshot) {
+                  writeScrollback(newSession.id, snapshot);
+                }
+              } catch {
+                console.warn("[SessionContext] Failed to restore scrollback for", saved.label);
+              }
+
+              dispatch({ type: "SESSION_UPDATED", session: newSession });
+              oldToNew.set(saved.id, newSession.id);
+            } catch (err) {
+              console.warn("[SessionContext] Failed to restore session:", saved.label, err);
+            }
+          }
+
+          if (oldToNew.size === 0) return;
+
+          // Rebuild the layout with remapped session IDs
+          if (workspace.layout) {
+            const remappedLayout = remapLayoutSessionIds(workspace.layout as LayoutNode, oldToNew);
+            const remappedFocus = remappedLayout ? remapPaneFocusId(remappedLayout, workspace.focused_pane_id) : null;
+            const remappedActive = workspace.active_session_id ? (oldToNew.get(workspace.active_session_id) ?? null) : null;
+            dispatch({
+              type: "RESTORE_LAYOUT",
+              root: remappedLayout,
+              focusedPaneId: remappedFocus,
+              activeSessionId: remappedActive || oldToNew.values().next().value || null,
+            });
+          } else {
+            // No layout saved — just activate the first restored session
+            const firstNewId = oldToNew.values().next().value;
+            if (firstNewId) dispatch({ type: "SET_ACTIVE", id: firstNewId });
+          }
+
+          // Restore completed successfully — NOW clear the saved workspace to prevent
+          // double-restore on next launch. This is the key safety improvement: if the
+          // app crashed before reaching this point, the data would still be intact.
+          await setSetting("saved_workspace", "").catch(console.error);
+        } finally {
+          workspaceRestoreInProgress = false;
         }
       })
-      .catch(console.error);
+      .catch((err) => {
+        workspaceRestoreInProgress = false;
+        console.error("[SessionContext] Workspace restore failed:", err);
+      });
 
     getRecentSessions(10)
       .then((entries) => dispatch({ type: "SET_RECENT", entries }))
@@ -899,6 +942,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
 
   const saveWorkspace = useCallback(async () => {
+    // Never save during an active restore — we'd overwrite partial state
+    if (workspaceRestoreInProgress) return;
+
     const current = stateRef.current;
     const liveSessions = Object.values(current.sessions).filter((s) => s.phase !== "destroyed");
     if (liveSessions.length === 0) {
@@ -932,8 +978,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         }),
       );
 
-      // 3. Serialize workspace state
+      // 3. Serialize workspace state with version stamp
       const workspace: SavedWorkspace = {
+        version: SAVED_WORKSPACE_VERSION,
         sessions: sessionInfos,
         layout: current.layout.root,
         focused_pane_id: current.layout.focusedPaneId,

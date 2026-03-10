@@ -110,25 +110,30 @@ fn do_save_workspace(app: &tauri::AppHandle) {
         // Save session metadata first (INSERT OR REPLACE resets the row)
         if let Ok(s) = pty_session.session.lock() {
             let update = pty::SessionUpdate::from(&*s);
-            db.create_session_v2(&update).ok();
+            if let Err(e) = db.create_session_v2(&update) {
+                log::error!("Failed to save session metadata for '{}': {}", session_id, e);
+            }
         }
 
         // Save scrollback snapshot AFTER metadata (since create_session_v2 replaces the row)
         if let Ok(analyzer) = pty_session.analyzer.lock() {
             let snapshot = analyzer.get_stripped_output();
-            db.save_session_snapshot(session_id, &snapshot).ok();
+            if let Err(e) = db.save_session_snapshot(session_id, &snapshot) {
+                log::error!("Failed to save scrollback snapshot for '{}': {}", session_id, e);
+            }
 
             let metrics = analyzer.to_metrics();
             for (provider, tokens) in &metrics.token_usage {
-                db.record_token_usage(
+                if let Err(e) = db.record_token_usage(
                     session_id,
                     provider,
                     &tokens.model,
                     tokens.input_tokens as i64,
                     tokens.output_tokens as i64,
                     tokens.estimated_cost_usd,
-                )
-                .ok();
+                ) {
+                    log::warn!("Failed to record token usage for '{}': {}", session_id, e);
+                }
             }
         }
     }

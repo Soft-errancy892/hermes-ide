@@ -142,10 +142,46 @@ export interface SavedSessionInfo {
 }
 
 export interface SavedWorkspace {
+  /** Schema version — bump when fields change to enable forward-compatible parsing. */
+  version?: number;
   sessions: SavedSessionInfo[];
   layout: unknown; // serialized LayoutNode
   focused_pane_id: string | null;
   active_session_id: string | null;
+}
+
+/** Current schema version for SavedWorkspace serialisation. */
+export const SAVED_WORKSPACE_VERSION = 1;
+
+/**
+ * Validate a parsed JSON blob against the SavedWorkspace shape.
+ * Returns `null` if invalid, otherwise returns the validated workspace.
+ */
+export function validateSavedWorkspace(raw: unknown): SavedWorkspace | null {
+  if (raw === null || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+
+  // `sessions` must be a non-empty array of objects with at least `id` and `label`
+  if (!Array.isArray(obj.sessions) || obj.sessions.length === 0) return null;
+  for (const s of obj.sessions) {
+    if (s === null || typeof s !== "object") return null;
+    const si = s as Record<string, unknown>;
+    if (typeof si.id !== "string" || !si.id) return null;
+    if (typeof si.label !== "string") return null;
+    // Provide defaults for optional fields that may be missing in older versions
+    if (typeof si.description !== "string") si.description = "";
+    if (typeof si.color !== "string") si.color = "";
+    if (typeof si.working_directory !== "string") si.working_directory = "";
+    if (!Array.isArray(si.project_ids)) si.project_ids = [];
+  }
+
+  return {
+    version: typeof obj.version === "number" ? obj.version : 0,
+    sessions: obj.sessions as SavedSessionInfo[],
+    layout: obj.layout ?? null,
+    focused_pane_id: typeof obj.focused_pane_id === "string" ? obj.focused_pane_id : null,
+    active_session_id: typeof obj.active_session_id === "string" ? obj.active_session_id : null,
+  };
 }
 
 // ─── Session Action (reducer) ────────────────────────────────────────
