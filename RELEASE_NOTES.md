@@ -1,11 +1,12 @@
+## New
+- SSH remote sessions let you open terminals on remote machines directly from the IDE
+- Automated changelog generation for every release
+
 ## Improved
-- Fully automated CI/CD release pipeline for all platforms
-- macOS builds are now signed and notarized in CI
-- Added Rust clippy and security auditing to CI
-- Hardened CI workflows for open-source fork safety
-- Added SHA256 checksums to release artifacts
-- Added Dependabot for automated dependency updates
+- App updates now arrive faster with a streamlined release pipeline
+- Updated all core dependencies for better performance and stability
+- CI runs are significantly faster with smart path filtering and caching
+- Releases now include SHA256 checksums for download verification
 
 ## Fixed
-- Fixed sponsor-thank-you workflow YAML
-- Fixed all Rust clippy warnings
+- Hardened CI pipeline against potential security issues
