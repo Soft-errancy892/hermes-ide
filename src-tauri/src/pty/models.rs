@@ -126,6 +126,13 @@ pub struct SessionMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SshConnectionInfo {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Session {
     pub id: String,
     pub label: String,
@@ -145,6 +152,7 @@ pub struct Session {
     pub context_injected: bool,
     pub has_initial_context: bool,
     pub last_nudged_version: i64,
+    pub ssh_info: Option<SshConnectionInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -167,6 +175,7 @@ pub struct SessionUpdate {
     pub context_injected: bool,
     pub has_initial_context: bool,
     pub last_nudged_version: i64,
+    pub ssh_info: Option<SshConnectionInfo>,
 }
 
 impl From<&Session> for SessionUpdate {
@@ -190,6 +199,7 @@ impl From<&Session> for SessionUpdate {
             context_injected: s.context_injected,
             has_initial_context: s.has_initial_context,
             last_nudged_version: s.last_nudged_version,
+            ssh_info: s.ssh_info.clone(),
         }
     }
 }
