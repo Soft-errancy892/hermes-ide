@@ -126,3 +126,4 @@ jobs:
         with:
           name: hermes-ide-aarch64-apple-darwin
           path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 7
