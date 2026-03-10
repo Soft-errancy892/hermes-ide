@@ -15,7 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-RELEASES_REPO="Vinci-26/hermes-ide-releases"
+RELEASES_REPO="hermes-hq/releases"
 ARTIFACTS_DIR="$PROJECT_DIR/release-artifacts"
 DOCKER_IMAGE="hermes-linux-builder"
 

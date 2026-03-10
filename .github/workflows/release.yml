@@ -437,7 +437,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
         run: |
-          REPO="Vinci-26/hermes-ide-releases"
+          REPO="hermes-hq/releases"
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             echo "Release $TAG already exists — will upload new assets"
           else
@@ -451,7 +451,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
         run: |
-          REPO="Vinci-26/hermes-ide-releases"
+          REPO="hermes-hq/releases"
           RELEASE_DIR="release-files"
 
           shopt -s nullglob
@@ -471,7 +471,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
         run: |
-          REPO="Vinci-26/hermes-ide-releases"
+          REPO="hermes-hq/releases"
           RELEASE_DIR="release-files"
           BASE_URL="https://github.com/$REPO/releases/download/$TAG"
 
