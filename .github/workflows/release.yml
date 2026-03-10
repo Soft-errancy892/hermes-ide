@@ -451,6 +451,21 @@ jobs:
           echo "=== SHA256SUMS ==="
           cat SHA256SUMS.txt
 
+      - name: Prepare release notes
+        run: |
+          if [ -f "RELEASE_NOTES.md" ]; then
+            echo "Using RELEASE_NOTES.md for release body"
+            cp RELEASE_NOTES.md release-notes.txt
+          else
+            echo "No RELEASE_NOTES.md found — using default release notes"
+            cat > release-notes.txt << 'NOTES'
+          ## New
+          - Release v${{ needs.config.outputs.version }}
+
+          See the full changelog at https://hermes-ide.com/changelog
+          NOTES
+          fi
+
       - name: Ensure GitHub Release exists
         env:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
@@ -462,7 +477,7 @@ jobs:
             gh release create "$TAG" \
               --repo "$REPO" \
               --title "Hermes IDE $TAG" \
-              --notes "Download the installer for your platform, or update in-app. Full changelog: https://hermes-ide.com/changelog"
+              --notes-file release-notes.txt
           fi
 
       - name: Upload build artifacts to release
