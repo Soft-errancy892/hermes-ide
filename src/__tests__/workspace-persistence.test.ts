@@ -29,6 +29,7 @@ describe("validateSavedWorkspace", () => {
     group: null,
     working_directory: "/tmp",
     ai_provider: null,
+    auto_approve: false,
     project_ids: [],
   };
 
@@ -110,6 +111,7 @@ describe("validateSavedWorkspace", () => {
     expect(s.description).toBe("");
     expect(s.color).toBe("");
     expect(s.working_directory).toBe("");
+    expect(s.auto_approve).toBe(false);
     expect(s.project_ids).toEqual([]);
   });
 
@@ -340,6 +342,7 @@ describe("Closed sessions don't reappear", () => {
         latency_samples: [], token_history: [],
       },
       ai_provider: null,
+      auto_approve: false,
       context_injected: false,
     };
 
@@ -451,5 +454,88 @@ describe("validateSavedWorkspace edge cases", () => {
     expect(s.color).toBe("");
     expect(s.working_directory).toBe("");
     expect(s.project_ids).toEqual([]);
+    expect(s.auto_approve).toBe(false);
+  });
+});
+
+// ─── auto_approve persistence ────────────────────────────────────────
+
+describe("auto_approve CLI flag persistence", () => {
+  it("preserves auto_approve: true in validated workspace", () => {
+    const result = validateSavedWorkspace({
+      sessions: [{
+        id: "s1",
+        label: "Yolo Session",
+        auto_approve: true,
+        ai_provider: "gemini",
+      }],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.sessions[0].auto_approve).toBe(true);
+  });
+
+  it("preserves auto_approve: false explicitly", () => {
+    const result = validateSavedWorkspace({
+      sessions: [{
+        id: "s1",
+        label: "Normal Session",
+        auto_approve: false,
+        ai_provider: "claude",
+      }],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.sessions[0].auto_approve).toBe(false);
+  });
+
+  it("defaults auto_approve to false when missing (backward compat)", () => {
+    const result = validateSavedWorkspace({
+      sessions: [{
+        id: "s1",
+        label: "Old Session",
+        ai_provider: "claude",
+        // no auto_approve field
+      }],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.sessions[0].auto_approve).toBe(false);
+  });
+
+  it("defaults auto_approve to false when wrong type", () => {
+    const result = validateSavedWorkspace({
+      sessions: [{
+        id: "s1",
+        label: "Bad Type",
+        auto_approve: "yes", // wrong type
+      }],
+    });
+    expect(result).not.toBeNull();
+    expect(result!.sessions[0].auto_approve).toBe(false);
+  });
+
+  it("round-trips auto_approve through JSON serialization", () => {
+    const workspace = {
+      version: 1,
+      sessions: [{
+        id: "s1",
+        label: "Yolo",
+        description: "",
+        color: "#ff0000",
+        group: null,
+        working_directory: "/tmp",
+        ai_provider: "gemini",
+        auto_approve: true,
+        project_ids: [],
+      }],
+      layout: null,
+      focused_pane_id: null,
+      active_session_id: "s1",
+    };
+
+    const json = JSON.stringify(workspace);
+    const parsed = JSON.parse(json);
+    const validated = validateSavedWorkspace(parsed);
+    expect(validated).not.toBeNull();
+    expect(validated!.sessions[0].auto_approve).toBe(true);
+    expect(validated!.sessions[0].ai_provider).toBe("gemini");
   });
 });

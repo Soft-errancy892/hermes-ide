@@ -78,6 +78,7 @@ export interface SessionData {
   detected_agent: AgentInfo | null;
   metrics: SessionMetrics;
   ai_provider: string | null;
+  auto_approve: boolean;
   context_injected: boolean;
 }
 
@@ -138,6 +139,7 @@ export interface SavedSessionInfo {
   group: string | null;
   working_directory: string;
   ai_provider: string | null;
+  auto_approve: boolean;
   project_ids: string[];
 }
 
@@ -172,6 +174,7 @@ export function validateSavedWorkspace(raw: unknown): SavedWorkspace | null {
     if (typeof si.description !== "string") si.description = "";
     if (typeof si.color !== "string") si.color = "";
     if (typeof si.working_directory !== "string") si.working_directory = "";
+    if (typeof si.auto_approve !== "boolean") si.auto_approve = false;
     if (!Array.isArray(si.project_ids)) si.project_ids = [];
   }
 

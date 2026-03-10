@@ -752,7 +752,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
                 workspacePaths: null,
                 aiProvider: saved.ai_provider,
                 realmIds: saved.project_ids.length > 0 ? saved.project_ids : null,
-                autoApprove: false,
+                autoApprove: saved.auto_approve ?? false,
               });
               await createTerminal(newSession.id, newSession.color);
 
@@ -973,6 +973,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             group: s.group,
             working_directory: s.working_directory,
             ai_provider: s.ai_provider,
+            auto_approve: s.auto_approve ?? false,
             project_ids: projectIds,
           };
         }),
