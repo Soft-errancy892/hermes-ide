@@ -780,7 +780,9 @@ mod tests {
 
         // Now type 'echo CTRL_C_WORKED' and check the output
         std::thread::sleep(std::time::Duration::from_millis(500));
-        writer.write_all(b"echo CTRL_C_WORKED\n").expect("write echo");
+        writer
+            .write_all(b"echo CTRL_C_WORKED\n")
+            .expect("write echo");
         writer.flush().expect("flush echo");
 
         // Wait for output

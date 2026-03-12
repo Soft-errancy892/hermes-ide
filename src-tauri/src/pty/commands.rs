@@ -1197,7 +1197,11 @@ fn enumerate_child_pids(parent_pid: u32) -> Vec<u32> {
     {
         // Use proc_listchildpids (libproc, macOS-specific)
         extern "C" {
-            fn proc_listchildpids(ppid: libc::pid_t, buffer: *mut libc::c_void, buffersize: libc::c_int) -> libc::c_int;
+            fn proc_listchildpids(
+                ppid: libc::pid_t,
+                buffer: *mut libc::c_void,
+                buffersize: libc::c_int,
+            ) -> libc::c_int;
         }
 
         // First call with NULL to get count
