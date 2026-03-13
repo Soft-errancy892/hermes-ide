@@ -184,9 +184,10 @@ function handleTerminalInput(sessionId: string, data: string): void {
   }
 
   // ── Update input buffer ──
-  if (intelligenceActive) {
-    updateInputBuffer(entry, data);
-  }
+  // Always track input regardless of phase — the buffer must reflect what
+  // the user has typed. Only suggestion computation is gated on phase,
+  // because every keystroke echo briefly flips phase to "busy".
+  updateInputBuffer(entry, data);
 
   // ── Clear ghost text on any non-navigation keystroke ──
   if (entry.ghostText) {
@@ -216,12 +217,15 @@ function handleTerminalInput(sessionId: string, data: string): void {
   });
 
   // ── Debounced suggestion computation ──
-  if (intelligenceActive && entry.inputBuffer.trim()) {
+  // Always set up the debounce regardless of phase — every keystroke echo
+  // briefly flips phase to "busy", which would kill the timer. The actual
+  // phase/intelligence check happens inside computeSuggestions().
+  if (entry.inputBuffer.trim()) {
     if (entry.suggestionTimer) clearTimeout(entry.suggestionTimer);
     entry.suggestionTimer = setTimeout(() => {
       computeSuggestions(sessionId);
     }, SUGGESTION_DEBOUNCE_MS);
-  } else if (intelligenceActive) {
+  } else {
     // Empty buffer — dismiss
     dismissSuggestions(sessionId);
   }

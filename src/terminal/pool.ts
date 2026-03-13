@@ -576,9 +576,11 @@ export function setSessionPhase(sessionId: string, phase: string): void {
       );
   }
 
-  // Dismiss suggestions when entering busy phase
+  // Dismiss suggestions when entering a genuinely non-interactive phase.
+  // Don't clear inputBuffer here — every keystroke echo briefly flips phase
+  // to "busy", which would wipe the buffer mid-typing. The buffer is
+  // properly cleared by updateInputBuffer on Enter/Ctrl-C/Ctrl-U.
   if (phase !== "idle" && phase !== "shell_ready") {
-    entry.inputBuffer = "";
     dismissSuggestions(sessionId);
     clearGhostText(sessionId);
   }
