@@ -695,6 +695,12 @@ pub fn create_session(
             c.arg("CLAUDECODE");
             c.arg("-u");
             c.arg("CLAUDE_CODE");
+            // Strip COLUMNS/LINES so the shell reads actual PTY dimensions
+            // from ioctl instead of inheriting stale values from the GUI app.
+            c.arg("-u");
+            c.arg("COLUMNS");
+            c.arg("-u");
+            c.arg("LINES");
             c.arg(&shell);
 
             // Shell-specific launch args depend on integration type
@@ -736,8 +742,15 @@ pub fn create_session(
                 .map(|p| p.to_string_lossy().to_string())
                 .unwrap_or_default()
         });
+        let zdotdir_str = zdotdir.to_string_lossy();
+        log::info!("[SHELL-INTEGRATION] Setting ZDOTDIR={:?}, HERMES_ORIGINAL_ZDOTDIR={:?}", zdotdir, original);
         cmd.env("HERMES_ORIGINAL_ZDOTDIR", &original);
-        cmd.env("ZDOTDIR", zdotdir.to_string_lossy().as_ref());
+        cmd.env("ZDOTDIR", zdotdir_str.as_ref());
+        // _HERMES_ZDOTDIR remembers our temp dir path so each wrapper script
+        // can re-point ZDOTDIR back after sourcing the user's file.
+        cmd.env("_HERMES_ZDOTDIR", zdotdir_str.as_ref());
+    } else {
+        log::info!("[SHELL-INTEGRATION] No zsh integration (variant: {})", if shell_integration.is_active() { "active-non-zsh" } else { "none" });
     }
 
     cmd.cwd(&cwd);

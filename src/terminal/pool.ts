@@ -107,7 +107,15 @@ export async function createTerminal(
   container.style.display = "none";
   container.dataset.sessionId = sessionId;
 
+  // Start the xterm buffer at the SAME estimated dimensions we pass to the
+  // PTY.  Without this, the Terminal defaults to 80×24 while the PTY starts
+  // at the estimated size → shell output is formatted for ~160 cols but
+  // written to an 80-col buffer → cursor positions and line wrapping are
+  // wrong, and no amount of later resize/reflow can fix that corrupted state.
+  const initialDims = estimateInitialDimensions();
   const terminal = new Terminal({
+    cols: initialDims.cols,
+    rows: initialDims.rows,
     cursorBlink: true,
     cursorStyle: "bar",
     fontSize,
@@ -550,11 +558,12 @@ export function setSessionPhase(sessionId: string, phase: string): void {
   entry.sessionPhase = phase;
 
   // ── Re-send PTY resize when shell becomes ready ──
-  // The PTY starts at a hardcoded 80×24. attach() sends resizeSession() via
-  // a double-rAF, but the shell may not have installed its SIGWINCH handler
-  // yet — the signal is lost and the shell keeps COLUMNS=80.  Re-sending
-  // the resize once the shell is confirmed ready guarantees it picks up the
-  // correct terminal dimensions.
+  // attach() sends resizeSession() via a double-rAF, but the shell may not
+  // have installed its SIGWINCH handler yet — the signal is lost and the
+  // shell keeps the startup COLUMNS value.  Re-sending the resize once the
+  // shell is confirmed ready guarantees it picks up the correct terminal
+  // dimensions.  A delayed follow-up catches edge cases where zle's own
+  // SIGWINCH handler isn't installed until after the first prompt redraw.
   if (
     phase === "shell_ready" &&
     prevPhase !== "shell_ready" &&

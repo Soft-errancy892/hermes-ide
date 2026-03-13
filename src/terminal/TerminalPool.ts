@@ -373,7 +373,8 @@ function computeSuggestions(sessionId: string): void {
     const input = entry.inputBuffer.trim();
     // Only show ghost text if it extends the current input
     if (topText.startsWith(input) && topText.length > input.length) {
-      showGhostText(sessionId, topText.slice(input.length));
+      const ghostSuffix = topText.slice(input.length);
+      showGhostText(sessionId, ghostSuffix);
     }
   }
 }
