@@ -21,6 +21,11 @@ const THEME_PREVIEW: Record<string, { bg: string; text: string; accent: string; 
   duel:      { bg: "#0a0a0a", text: "#e0e0e0", accent: "#ff4444", green: "#33ff77" },
   rainbow:   { bg: "#0f0a14", text: "#e0d6f0", accent: "#ff6b9d", green: "#34d399" },
   "80s":     { bg: "#1a0a1a", text: "#ffcc00", accent: "#ff6600", green: "#33ff99" },
+  light:     { bg: "#ffffff", text: "#1a1a2e", accent: "#2563eb", green: "#16a34a" },
+  rose:      { bg: "#fdf8f8", text: "#2c2024", accent: "#c75580", green: "#5a9e6f" },
+  lavender:  { bg: "#f9f7fd", text: "#1e1a2e", accent: "#7c4dff", green: "#4caf6a" },
+  mint:      { bg: "#f6fcfa", text: "#1a2c26", accent: "#0d9668", green: "#12a35c" },
+  sand:      { bg: "#faf8f4", text: "#2a2520", accent: "#c06a30", green: "#5a9952" },
   solarized: { bg: "#fdf6e3", text: "#586e75", accent: "#268bd2", green: "#859900" },
 };
 
