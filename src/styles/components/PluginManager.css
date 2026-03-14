@@ -97,6 +97,30 @@
   color: var(--green);
 }
 
+/* ─── Check for Updates Button ──────────────────────────── */
+
+.pm-check-updates {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s, background 0.12s;
+}
+.pm-check-updates:hover {
+  color: var(--accent);
+  background: var(--bg-2);
+}
+.pm-check-updates:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 /* ─── Category Chips ─────────────────────────────────────── */
 
 .pm-categories {

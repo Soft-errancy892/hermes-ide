@@ -66,6 +66,7 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 	const [search, setSearch] = useState("");
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+	const [checking, setChecking] = useState(false);
 
 	const loadPlugins = useCallback(async () => {
 		setLoading(true);
@@ -105,6 +106,15 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 			// Registry unavailable — not critical
 		}
 	}, []);
+
+	const handleCheckForUpdates = useCallback(async () => {
+		setChecking(true);
+		try {
+			await Promise.all([loadPlugins(), loadRegistry()]);
+		} finally {
+			setChecking(false);
+		}
+	}, [loadPlugins, loadRegistry]);
 
 	useEffect(() => {
 		loadPlugins();
@@ -541,6 +551,22 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 					Browse
 					{availablePlugins.length > 0 && (
 						<span className="pm-tab-badge">{availablePlugins.length}</span>
+					)}
+				</button>
+				<button
+					className="pm-check-updates"
+					onClick={handleCheckForUpdates}
+					disabled={checking}
+					title="Check for updates"
+				>
+					{checking ? (
+						<span className="pm-spinner" />
+					) : (
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<polyline points="23 4 23 10 17 10" />
+							<polyline points="1 20 1 14 7 14" />
+							<path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+						</svg>
 					)}
 				</button>
 			</div>
