@@ -1472,10 +1472,7 @@ pub fn write_to_session(
 ///   3. Fallback — enumerate the shell's direct children; if none exist the
 ///      shell is assumed to be at its prompt.
 #[tauri::command]
-pub fn is_shell_foreground(
-    state: State<'_, AppState>,
-    session_id: String,
-) -> Result<bool, String> {
+pub fn is_shell_foreground(state: State<'_, AppState>, session_id: String) -> Result<bool, String> {
     let mgr = state.pty_manager.lock().map_err(|e| e.to_string())?;
     let session = mgr
         .sessions
@@ -1491,12 +1488,8 @@ pub fn is_shell_foreground(
     #[cfg(target_os = "macos")]
     {
         if let Some(ref tty_path) = session.tty_path {
-            if let Ok(tty_cstr) =
-                std::ffi::CString::new(tty_path.to_string_lossy().into_owned())
-            {
-                let fd = unsafe {
-                    libc::open(tty_cstr.as_ptr(), libc::O_RDONLY | libc::O_NOCTTY)
-                };
+            if let Ok(tty_cstr) = std::ffi::CString::new(tty_path.to_string_lossy().into_owned()) {
+                let fd = unsafe { libc::open(tty_cstr.as_ptr(), libc::O_RDONLY | libc::O_NOCTTY) };
                 if fd >= 0 {
                     let fg_pgid = unsafe { libc::tcgetpgrp(fd) };
                     unsafe { libc::close(fd) };
