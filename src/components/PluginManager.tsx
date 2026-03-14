@@ -67,6 +67,7 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 	const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 	const [checking, setChecking] = useState(false);
+	const [pendingUninstall, setPendingUninstall] = useState<{ pluginId: string; dirName: string; pluginName: string } | null>(null);
 
 	const loadPlugins = useCallback(async () => {
 		setLoading(true);
@@ -121,8 +122,14 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 		loadRegistry();
 	}, [loadPlugins, loadRegistry]);
 
-	const handleUninstall = useCallback(async (pluginId: string, dirName: string, pluginName: string) => {
-		if (!confirm(`Uninstall "${pluginName}"? This will remove the plugin files.`)) return;
+	const handleUninstall = useCallback((pluginId: string, dirName: string, pluginName: string) => {
+		setPendingUninstall({ pluginId, dirName, pluginName });
+	}, []);
+
+	const confirmUninstall = useCallback(async () => {
+		if (!pendingUninstall) return;
+		const { pluginId, dirName } = pendingUninstall;
+		setPendingUninstall(null);
 		try {
 			await invoke("uninstall_plugin", { pluginDir: dirName });
 		} catch (err) {
@@ -144,7 +151,7 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 		}
 		setExpandedId(null);
 		await loadPlugins();
-	}, [loadPlugins, runtime]);
+	}, [pendingUninstall, loadPlugins, runtime]);
 
 	const hotLoadPlugin = useCallback(async () => {
 		if (!runtime) return;
@@ -648,6 +655,20 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 				</span>
 				<span className="pm-footer-version">v{appVersion}</span>
 			</div>
+
+			{/* Uninstall Confirmation Dialog */}
+			{pendingUninstall && (
+				<div className="pm-confirm-overlay" onClick={() => setPendingUninstall(null)}>
+					<div className="pm-confirm-dialog" onClick={(e) => e.stopPropagation()}>
+						<div className="pm-confirm-title">Uninstall &ldquo;{pendingUninstall.pluginName}&rdquo;?</div>
+						<div className="pm-confirm-desc">This will remove the plugin files. This action cannot be undone.</div>
+						<div className="pm-confirm-actions">
+							<button className="pm-btn" onClick={() => setPendingUninstall(null)}>Cancel</button>
+							<button className="pm-btn pm-btn-danger" onClick={confirmUninstall}>Uninstall</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
