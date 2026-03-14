@@ -695,6 +695,18 @@ function AppContent() {
             const info = pluginUpdater.updatesAvailable.find((u) => u.id === plugin.id);
             if (info) {
               setPendingUpdatePlugins([info]);
+            } else {
+              // Update not in checker state (e.g. auto-update cleared it, or check hasn't run yet)
+              // Build the info from the registry plugin directly
+              setPendingUpdatePlugins([{
+                id: plugin.id,
+                name: plugin.name,
+                currentVersion: "",
+                newVersion: plugin.version,
+                downloadUrl: plugin.downloadUrl,
+                changelog: plugin.changelog,
+                icon: plugin.icon,
+              }]);
             }
           }}
         />
