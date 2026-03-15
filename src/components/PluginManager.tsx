@@ -51,9 +51,10 @@ const PackageIcon = () => (
 interface PluginManagerProps {
 	runtime?: PluginRuntime;
 	onConfirmUpdate?: (plugin: RegistryPlugin) => void;
+	refreshTrigger?: number;
 }
 
-export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) {
+export function PluginManager({ runtime, onConfirmUpdate, refreshTrigger }: PluginManagerProps) {
 	const [installed, setInstalled] = useState<PluginEntry[]>([]);
 	const [registry, setRegistry] = useState<RegistryPlugin[]>([]);
 	const [pluginsDir, setPluginsDir] = useState("");
@@ -121,6 +122,11 @@ export function PluginManager({ runtime, onConfirmUpdate }: PluginManagerProps) 
 		loadPlugins();
 		loadRegistry();
 	}, [loadPlugins, loadRegistry]);
+
+	// Refresh installed list when an external update completes (e.g. via confirm dialog)
+	useEffect(() => {
+		if (refreshTrigger) loadPlugins();
+	}, [refreshTrigger, loadPlugins]);
 
 	const handleUninstall = useCallback((pluginId: string, dirName: string, pluginName: string) => {
 		setPendingUninstall({ pluginId, dirName, pluginName });

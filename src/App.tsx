@@ -820,6 +820,7 @@ function AppContent() {
           onClose={() => setSettingsOpen(null)}
           initialTab={settingsOpen}
           pluginRuntime={pluginRuntime}
+          pluginRefreshTrigger={pluginUpdater.updateResults.length}
           onConfirmPluginUpdate={(plugin) => {
             const info = pluginUpdater.updatesAvailable.find((u) => u.id === plugin.id);
             if (info) {
