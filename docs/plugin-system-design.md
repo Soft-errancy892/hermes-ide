@@ -1,8 +1,8 @@
 # Hermes IDE Plugin System -- Technical Design Document
 
-**Version:** 0.1 (Draft)
-**Date:** 2026-03-09
-**Status:** Design Phase -- No implementation yet
+**Version:** 1.0
+**Date:** 2026-03-18
+**Status:** Implemented -- Phases 1-3 complete
 
 ---
 
@@ -107,7 +107,7 @@
 
 ### Key Design Decision: In-Process React Components, Not Iframes
 
-Plugins will be loaded as **ES modules that export React components**, rendered in-process within the host app's React tree. This is chosen over iframe-based isolation because:
+Plugins are loaded as **IIFE bundles that register React components** on a global registry (`window.__hermesPlugins`), rendered in-process within the host app's React tree. This is chosen over iframe-based isolation because:
 
 1. **Performance** -- No cross-frame serialization overhead. Plugin UI renders at native React speed.
 2. **Theming** -- Plugins inherit CSS custom properties from the host app's theme system. A plugin rendered under the `tron` theme automatically gets tron colors.
@@ -230,7 +230,7 @@ Every plugin has a `hermes-plugin.json` file at its root. This is the single sou
 | `main` | Yes | Path to the built ES module entry point (relative to plugin root). |
 | `source` | No | Path to source entry point. Used for dev-mode hot reload. |
 | `contributes` | No | Declarative UI contribution points. |
-| `permissions` | No | Array of permission strings the plugin needs. Defaults to none. |
+| `permissions` | No | Array of permission strings the plugin needs. Defaults to none. Auto-granted: `"storage"` is automatically added if the plugin has a `contributes.settings` schema. |
 | `icon` | No | Path to an SVG icon file. Used in the marketplace and settings. |
 
 ### Validation
@@ -338,26 +338,55 @@ interface HermesPluginAPI {
     get(key: string): Promise<string | null>;
     set(key: string, value: string): Promise<void>;
     delete(key: string): Promise<void>;
-    getAll(): Promise<Record<string, string>>;
   };
 
-  // ─── Notifications ───────────────────────────────────────────
+  // ─── Settings (requires "storage" permission, auto-granted if settings schema exists) ─
+  settings: {
+    /** Get a setting value. Returns the default from schema if not stored. */
+    get<T = string | number | boolean>(key: string): Promise<T>;
+
+    /** Update a setting value. Validates against the schema. */
+    update(key: string, value: string | number | boolean): Promise<void>;
+
+    /** Listen for changes to a specific setting key. */
+    onDidChange(key: string, callback: (newValue: string | number | boolean) => void): Disposable;
+
+    /** Get all settings as a flat object with defaults applied. */
+    getAll(): Promise<Record<string, string | number | boolean>>;
+  };
+
+  // ─── Notifications (requires "notifications" permission) ─────
   notifications: {
-    /** Send a system notification. */
-    send(title: string, body?: string): Promise<void>;
+    /** Send a desktop notification. */
+    send(options: { title: string; body?: string }): Promise<void>;
   };
 
-  // ─── Context (read-only access to project info) ──────────────
-  context: {
-    /** Get attached projects for the active session. */
-    getProjects(): Promise<ProjectInfo[]>;
+  // ─── Network (requires "network" permission) ─────────────────
+  network: {
+    /** Fetch a URL and return the response body as text.
+     *  Requests are proxied through the Rust backend to bypass CSP. */
+    fetch(url: string): Promise<string>;
+  };
 
-    /** Get the git status for the active session. */
-    getGitSummary(): Promise<{ branch: string | null; changeCount: number } | null>;
+  // ─── Shell (requires "network" permission) ────────────────────
+  shell: {
+    /** Open a URL in the user's default browser. */
+    openExternal(url: string): Promise<void>;
+  };
+
+  // ─── Agents (requires "sessions.read" permission) ────────────
+  agents: {
+    /** Watch a session's AI agent transcript (JSONL) in real time.
+     *  Receives events like tool_start, tool_end, text, thinking, turn_end. */
+    watchTranscript(
+      sessionId: string,
+      callback: (event: TranscriptEvent) => void
+    ): Promise<Disposable>;
   };
 
   // ─── Lifecycle ───────────────────────────────────────────────
-  /** Disposable pattern for cleanup. */
+  /** Disposable pattern for cleanup. Push disposables here and they
+   *  will be auto-disposed when the plugin is deactivated. */
   subscriptions: Disposable[];
 }
 
@@ -386,11 +415,12 @@ interface ProjectInfo {
 
 - **Direct state dispatch** -- No dispatching raw `SessionAction` objects. All mutations go through the API.
 - **Terminal instances** -- No direct access to xterm.js `Terminal` objects or the `TerminalPool`.
-- **Database** -- No raw SQLite access. Only the `storage` API for per-plugin data.
+- **Database** -- No raw SQLite access. Only the `storage` API for per-plugin data. Backend enforces the `"storage"` permission on every DB call.
 - **Filesystem** -- No general filesystem read/write. Plugins that need file access must go through a file picker dialog (future permission).
-- **Network** -- No arbitrary network requests without a `network` permission (future).
+- **Network** -- No arbitrary network requests without the `"network"` permission. All requests go through the Rust backend, which checks permissions before fetching.
 - **Other plugins' storage** -- Each plugin's storage is namespaced by its ID.
-- **Tauri IPC** -- Plugins cannot call `invoke()` directly. Backend access is mediated by the host.
+- **Tauri IPC** -- Plugins cannot call `invoke()` directly. Backend access is mediated by the host. Even if a plugin manages to call a Tauri command, the backend independently verifies permissions from the database.
+- **Other plugins' registrations** -- Tamper protection prevents a plugin from registering under a different plugin's ID.
 
 ### Shared Dependencies
 
@@ -601,7 +631,7 @@ Each plugin's entry point must export an `activate` function and optionally a `d
 
 ```typescript
 // Plugin entry point (src/index.tsx)
-import type { HermesPluginAPI } from "@hermes-ide/plugin-api";
+import type { HermesPluginAPI } from "@hermes-hq/plugin-sdk";
 
 export function activate(hermes: HermesPluginAPI) {
   // Register command handlers, set up subscriptions, etc.
@@ -654,24 +684,30 @@ Plugins declare the permissions they need in their manifest. Users see these per
 
 **Permission levels:**
 
-| Permission | Grants | Risk Level |
-|-----------|--------|------------|
-| *(none)* | UI rendering, commands, theme info | None |
-| `clipboard.read` | Read system clipboard text | Low |
-| `clipboard.write` | Write to system clipboard | Low |
-| `storage` | Per-plugin persistent key-value storage | Low |
-| `terminal.read` | Subscribe to terminal output (raw text) for any session | Medium |
-| `terminal.write` | Write text to terminal sessions | High |
-| `notifications` | Send system notifications | Low |
-| `sessions.read` | Read session metadata (label, cwd, agent info) | Low |
-| `network` | Make HTTP requests to specified domains (future) | High |
-| `filesystem.read` | Read files through a scoped dialog (future) | High |
+| Permission | Grants | Risk Level | Status |
+|-----------|--------|------------|--------|
+| *(none)* | UI rendering, commands, theme info, events | None | Implemented |
+| `clipboard.read` | Read system clipboard text | Low | Implemented |
+| `clipboard.write` | Write to system clipboard | Low | Implemented |
+| `storage` | Per-plugin persistent key-value storage and settings | Low | Implemented |
+| `notifications` | Send desktop notifications | Low | Implemented |
+| `sessions.read` | Read session metadata, watch AI agent transcripts | Low | Implemented |
+| `network` | Make HTTP requests to external URLs, open URLs in browser | High | Implemented |
+| `terminal.read` | Subscribe to terminal output (raw text) for any session | Medium | Future |
+| `terminal.write` | Write text to terminal sessions | High | Future |
+| `filesystem.read` | Read files through a scoped dialog | High | Future |
 
-**Default (no permissions declared):** A plugin can render UI, register commands, use the theme, and show toasts. It cannot access the clipboard, terminal, sessions, storage, or anything else.
+**Default (no permissions declared):** A plugin can render UI, register commands, listen to events, and show toasts. It cannot access the clipboard, terminal, sessions, storage, network, or anything else.
+
+**Settings and storage:** Plugins that declare a `contributes.settings` schema automatically receive the `"storage"` permission, since settings are persisted via the same storage backend. You do not need to explicitly list `"storage"` if your plugin only uses settings.
 
 ### 7.2 Enforcement
 
-The `hermes` API object passed to each plugin is a **Proxy** that checks permissions before each API call:
+Permissions are enforced at **two layers** to prevent bypass:
+
+**Layer 1: Frontend (JavaScript API proxy)**
+
+The `hermes` API object passed to each plugin checks permissions before each API call. If a permission is missing, a `PermissionDeniedError` is thrown immediately:
 
 ```typescript
 // Simplified internal implementation:
@@ -684,25 +720,54 @@ function createPluginAPI(pluginId: string, grantedPermissions: Set<string>): Her
         }
         return navigator.clipboard.readText();
       },
-      writeText(text: string) {
-        if (!grantedPermissions.has("clipboard.write")) {
-          throw new PermissionDeniedError(pluginId, "clipboard.write");
+    },
+    storage: {
+      async get(key: string) {
+        if (!grantedPermissions.has("storage")) {
+          throw new PermissionDeniedError(pluginId, "storage");
         }
-        return navigator.clipboard.writeText(text);
-      }
+        return invoke("get_plugin_setting", { pluginId, key });
+      },
+    },
+    network: {
+      fetch(url: string) {
+        if (!grantedPermissions.has("network")) {
+          throw new PermissionDeniedError(pluginId, "network");
+        }
+        return invoke("plugin_fetch_url", { url, pluginId });
+      },
     },
     // ... other namespaces with similar checks
   };
 }
 ```
 
-### 7.3 Error Isolation
+**Layer 2: Backend (Rust / Tauri commands)**
+
+Even if a malicious plugin bypasses the JS API and calls Tauri IPC commands directly, the Rust backend independently verifies permissions from the database before executing any operation:
+
+- `get_plugin_setting`, `set_plugin_setting`, `delete_plugin_setting`, `get_plugin_settings_batch` — all require `"storage"` permission in the `plugins.permissions_granted` DB column
+- `plugin_fetch_url` — requires `"network"` permission, and the `pluginId` parameter is mandatory
+
+On plugin activation, the runtime persists the plugin's permissions from its manifest into the `plugins` table via `save_plugin_metadata`. This ensures the backend always has an authoritative record of what each plugin is allowed to do.
+
+**Permission migration:** When a plugin is activated for the first time (or after an update), its permissions are automatically saved to the database. This means existing plugins that were installed before backend enforcement was added will have their permissions migrated seamlessly on their next activation.
+
+### 7.3 Install Confirmation
+
+When a user installs a plugin from the marketplace that requests permissions, a confirmation dialog is shown listing each requested permission with a human-readable description. The user must explicitly confirm before the installation proceeds. Plugins with no permissions are installed immediately without a dialog.
+
+### 7.4 Tamper Protection
+
+When a plugin bundle is loaded, the host snapshots the existing `window.__hermesPlugins` keys before executing the bundle. After execution, it verifies that the plugin only registered under its own ID. If a plugin attempts to register under a different ID (e.g., to impersonate another plugin), the rogue registration is removed and the plugin is rejected with an error.
+
+### 7.6 Error Isolation
 
 - Each plugin panel is wrapped in a `PanelErrorBoundary` (already used for built-in panels). If a plugin throws, the panel shows an error state instead of crashing the app.
 - Plugin `activate()` calls are wrapped in try-catch. A failing plugin is marked as "errored" and can be retried or disabled.
 - Plugin command handlers are wrapped in try-catch. Errors are logged and shown as toast notifications.
 
-### 7.4 What Plugins Cannot Do
+### 7.7 What Plugins Cannot Do
 
 - Access `window.__TAURI__` or `invoke()` directly (the host does not expose these to plugin modules).
 - Import from host-internal paths (`../state/SessionContext`, `../terminal/TerminalPool`, etc.).
@@ -710,7 +775,7 @@ function createPluginAPI(pluginId: string, grantedPermissions: Set<string>): Her
 - Register global keyboard shortcuts that override built-in ones.
 - Access other plugins' storage or API objects.
 
-### 7.5 Plugin Review (Marketplace)
+### 7.8 Plugin Review (Marketplace)
 
 Plugins submitted to the `hermes-hq/plugins` registry go through a review process:
 1. Automated checks: manifest validation, dependency audit, bundle size limits.
@@ -814,7 +879,7 @@ my-plugin/
 
 ```typescript
 // src/index.tsx
-import type { HermesPluginAPI } from "@hermes-ide/plugin-api";
+import type { HermesPluginAPI } from "@hermes-hq/plugin-sdk";
 
 export function activate(hermes: HermesPluginAPI) {
   // Register a command
@@ -892,13 +957,13 @@ When developing locally:
 
 ### 9.5 Type Definitions
 
-The `@hermes-ide/plugin-api` package provides TypeScript type definitions for the `HermesPluginAPI` interface. This is a types-only package (no runtime code) that plugins install as a dev dependency.
+The `@hermes-hq/plugin-sdk` package provides TypeScript type definitions for the `HermesPluginAPI` interface. This is a types-only package (no runtime code) that plugins install as a dev dependency.
 
 ```json
 // Plugin's package.json
 {
   "devDependencies": {
-    "@hermes-ide/plugin-api": "^0.4.0",
+    "@hermes-hq/plugin-sdk": "^0.4.0",
     "typescript": "^5.6.0"
   },
   "peerDependencies": {
@@ -909,12 +974,14 @@ The `@hermes-ide/plugin-api` package provides TypeScript type definitions for th
 
 ### 9.6 Build Configuration
 
-Plugins are built with Vite (recommended) or any bundler that outputs ES modules. The key requirements:
+Plugins are built as **IIFE bundles** that register on `window.__hermesPlugins`. The host loads them via blob URLs to satisfy CSP (`script-src 'self' blob:`). React is provided as `window.React` so plugins don't need to bundle it.
 
-- Output format: `es` (ES modules)
-- Externalize `react` and `react-dom` (provided by host)
-- Single entry point that exports `activate` and optionally `deactivate`
-- Named exports for panel components (referenced in manifest `contributes.panels[].component`)
+Key requirements:
+
+- Output format: `iife` (Immediately Invoked Function Expression)
+- Externalize `react` and `react-dom` (provided by host as globals)
+- The IIFE footer must register `{ activate, deactivate }` on `window.__hermesPlugins[pluginId]`
+- The bundle is loaded from disk by the Rust backend and executed as a `<script>` tag
 
 ```typescript
 // vite.config.ts (plugin)
@@ -923,18 +990,36 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  },
   build: {
     lib: {
       entry: "src/index.tsx",
-      formats: ["es"],
-      fileName: "index",
+      formats: ["iife"],
+      name: "HermesPlugin",
+      fileName: () => "index.js",
     },
     rollupOptions: {
       external: ["react", "react-dom", "react/jsx-runtime"],
+      output: {
+        globals: {
+          react: "React",
+          "react-dom": "ReactDOM",
+          "react/jsx-runtime": "React",
+        },
+        // Register on global __hermesPlugins with the plugin ID
+        footer: `window.__hermesPlugins = window.__hermesPlugins || {};
+window.__hermesPlugins["my-scope.my-plugin"] = { activate: HermesPlugin.activate, deactivate: HermesPlugin.deactivate };`,
+      },
     },
+    outDir: "dist",
+    emptyOutDir: true,
   },
 });
 ```
+
+**Important:** The IIFE footer must set `window.__hermesPlugins["<your-plugin-id>"]` with the exact same ID as your `hermes-plugin.json` `id` field. The host verifies this — a plugin that registers under a different ID will be rejected (tamper protection).
 
 ---
 
@@ -1063,7 +1148,7 @@ json-formatter/
 
 ```tsx
 // src/index.tsx
-import type { HermesPluginAPI } from "@hermes-ide/plugin-api";
+import type { HermesPluginAPI } from "@hermes-hq/plugin-sdk";
 import { JsonFormatterPanel } from "./JsonFormatterPanel";
 
 // Re-export the panel component so the host can resolve it by name
@@ -1281,69 +1366,60 @@ export function JsonFormatterPanel() {
 
 ## 12. Implementation Phases
 
-### Phase 1: Foundation (MVP)
+### Phase 1: Foundation (MVP) -- COMPLETE
 
-**Goal:** Load and render a single hardcoded plugin (JSON Formatter). Prove the architecture works.
+**Goal:** Load and render plugins. Prove the architecture works.
 
-**Work items:**
-1. Create `src/plugins/PluginRuntime.ts` -- Plugin registry, loader, lifecycle management.
-2. Create `src/plugins/PluginAPI.ts` -- The `hermes` API object factory with permission checks.
-3. Create `src/plugins/PluginPanelHost.tsx` -- Error boundary wrapper for plugin panels.
-4. Modify `ActivityBar` -- Accept dynamically added tabs from plugins.
-5. Modify `CommandPalette` -- Merge plugin commands into the command list.
-6. Modify `StatusBar` -- Render plugin status bar items.
-7. Modify `App.tsx` -- Initialize `PluginRuntime` on mount, render plugin panels in layout.
-8. Add `plugins` table to SQLite (plugin ID, version, enabled, permissions granted).
-9. Build the JSON Formatter plugin as the test case.
-10. Create `@hermes-ide/plugin-api` types package.
+**Delivered:**
+- `src/plugins/PluginRuntime.ts` -- Plugin registry, loader, lifecycle management
+- `src/plugins/PluginAPI.ts` -- The `hermes` API object factory with permission checks
+- `src/plugins/PluginPanelHost.tsx` -- Error boundary wrapper for plugin panels
+- `src/plugins/PluginLoader.ts` -- IIFE bundle loading via blob URLs with tamper protection
+- ActivityBar, CommandPalette, StatusBar integration with plugin contributions
+- `plugins` and `plugin_storage` tables in SQLite
+- `@hermes-hq/plugin-sdk` types package published to npm
+- JSON Formatter, Pomodoro Timer, UUID Generator, RSS Reader, Regex Tester, Session Notes, and Pixel Office plugins
 
-### Phase 2: Settings UI and Local Install
+### Phase 2: Settings UI and Marketplace -- COMPLETE
 
-**Goal:** Users can enable/disable plugins and install from local directories.
+**Delivered:**
+- Plugin Manager UI with "Installed" and "Browse" tabs
+- Plugin enable/disable toggle with restart-free activation/deactivation
+- Registry browsing with search, category filters, and version compatibility checks
+- Download and install flow (.tgz extraction via Rust backend)
+- Update checking and one-click updates with changelog display
+- Uninstall with confirmation dialog
+- Plugin settings schema and settings form UI
+- Plugin session action buttons with badge support
 
-**Work items:**
-1. Add "Plugins" tab to Settings dialog.
-2. Plugin enable/disable toggle with restart-free activation.
-3. "Install from folder" button (symlink-based install).
-4. Plugin error reporting in Settings (show activation errors).
-5. Dev mode: file watcher for hot reload of symlinked plugins.
+### Phase 3: Security and Isolation -- COMPLETE
 
-### Phase 3: Marketplace
+**Delivered:**
+- Backend permission enforcement on all storage and network commands
+- `save_plugin_metadata` / `get_plugin_permissions` Tauri commands
+- Dual-layer permission checks (frontend API proxy + Rust backend)
+- Tamper protection (plugins cannot register under foreign IDs)
+- Install confirmation dialog showing permission descriptions
+- Auto-migration of permissions on activation (backward compatible)
+- Auto-grant `"storage"` for plugins with settings schemas
 
-**Goal:** Users can browse and install plugins from the `hermes-hq/plugins` registry.
+### Phase 4: Advanced APIs (Future)
 
-**Work items:**
-1. Registry index fetcher and cacher.
-2. "Browse Plugins" UI in Settings.
-3. Download and install flow (tarball extraction).
-4. Update checking and one-click updates.
-5. Uninstall flow.
-6. Set up CI pipeline in the `hermes-hq/plugins` repo for building and publishing.
+**Planned:**
+1. `terminal.read` / `terminal.write` permissions and API
+2. `filesystem.read` with scoped file picker
+3. Inter-plugin communication (event bus)
+4. Bottom panel slot
+5. Context menu contributions
 
-### Phase 4: Advanced APIs
+### Phase 5: Ecosystem (Future)
 
-**Goal:** Expand the plugin API surface for more powerful plugins.
-
-**Work items:**
-1. `terminal.read` / `terminal.write` permissions and API.
-2. `network` permission with domain-scoped access.
-3. `filesystem.read` with scoped file picker.
-4. Inter-plugin communication (event bus).
-5. Plugin settings (contribute to the Settings UI).
-6. Bottom panel slot.
-7. Context menu contributions.
-
-### Phase 5: Ecosystem
-
-**Goal:** Make plugin development easy and the marketplace useful.
-
-**Work items:**
-1. `@hermes-ide/create-plugin` scaffolder.
-2. `@hermes-ide/plugin-cli` dev tool.
-3. Plugin documentation site.
-4. Plugin submission and review workflow.
-5. Plugin ratings and reviews.
-6. Plugin search and categories.
+**Planned:**
+1. `@hermes-hq/create-plugin` scaffolder
+2. `@hermes-hq/plugin-cli` dev tool
+3. Plugin documentation site
+4. Plugin submission and review workflow
+5. Plugin ratings and reviews
 
 ---
 
@@ -1401,22 +1477,27 @@ CREATE TABLE IF NOT EXISTS plugin_storage (
 );
 ```
 
-### New IPC Commands
+### Implemented IPC Commands
 
 ```rust
-// Plugin management
-plugin::list_plugins          // List all installed plugins
-plugin::install_plugin        // Install from path or URL
-plugin::uninstall_plugin      // Remove plugin
-plugin::enable_plugin         // Enable a disabled plugin
-plugin::disable_plugin        // Disable a plugin
-plugin::get_plugin_info       // Get full plugin metadata
+// Plugin management (src-tauri/src/plugins.rs)
+plugins::list_installed_plugins       // Scan plugins dir, return manifests
+plugins::read_plugin_bundle           // Read JS bundle from disk (path-traversal safe)
+plugins::get_plugins_dir              // Get/create the plugins directory path
+plugins::install_plugin               // Extract .tgz archive to plugins dir
+plugins::uninstall_plugin             // Remove plugin directory
+plugins::download_and_install_plugin  // Download .tgz from URL and install
+plugins::fetch_plugin_registry        // Fetch registry JSON (bypasses CSP)
+plugins::plugin_fetch_url             // Fetch URL for plugins (requires "network" permission)
 
-// Plugin storage
-plugin::plugin_storage_get    // Get a value from plugin storage
-plugin::plugin_storage_set    // Set a value in plugin storage
-plugin::plugin_storage_delete // Delete a value from plugin storage
-plugin::plugin_storage_list   // List all keys for a plugin
+// Plugin storage & permissions (src-tauri/src/db/mod.rs)
+db::get_plugin_setting                // Get value (requires "storage" permission)
+db::set_plugin_setting                // Set value (requires "storage" permission)
+db::delete_plugin_setting             // Delete value (requires "storage" permission)
+db::get_plugin_settings_batch         // Get all __setting: keys (requires "storage" permission)
+db::set_plugin_enabled                // Toggle enabled/disabled state
+db::get_disabled_plugin_ids           // List disabled plugin IDs
+db::cleanup_plugin_data               // Remove all DB records for a plugin (uninstall)
+db::save_plugin_metadata              // Upsert plugin metadata + permissions to DB
+db::get_plugin_permissions            // Query granted permissions for a plugin
 ```
-
-These commands would live in a new `src-tauri/src/plugin/mod.rs` module.

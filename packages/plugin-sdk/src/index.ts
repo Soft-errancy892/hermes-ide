@@ -7,6 +7,7 @@ export type {
 	PluginCommandContribution,
 	PluginPanelContribution,
 	PluginStatusBarItem,
+	PluginSessionActionContribution,
 	PluginSettingsSchema,
 	PluginSettingDefinition,
 	PluginSettingString,

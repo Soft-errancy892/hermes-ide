@@ -31,7 +31,15 @@ export interface PluginContributions {
 	commands?: PluginCommandContribution[];
 	panels?: PluginPanelContribution[];
 	statusBarItems?: PluginStatusBarItem[];
+	sessionActions?: PluginSessionActionContribution[];
 	settings?: PluginSettingsSchema;
+}
+
+export interface PluginSessionActionContribution {
+	id: string;
+	panelId: string;
+	name: string;
+	icon: string;
 }
 
 export interface PluginCommandContribution {
@@ -64,7 +72,8 @@ export type PluginPermission =
 	| "terminal.read"
 	| "terminal.write"
 	| "sessions.read"
-	| "notifications";
+	| "notifications"
+	| "network";
 
 // ─── Settings Schema ─────────────────────────────────────
 
@@ -129,6 +138,7 @@ export interface HermesPluginAPI {
 		togglePanel(panelId: string): void;
 		showToast(message: string, options?: { type?: "info" | "success" | "warning" | "error"; duration?: number }): void;
 		updateStatusBarItem(itemId: string, update: { text?: string; tooltip?: string; visible?: boolean }): void;
+		updateSessionActionBadge(actionId: string, badge: { text?: string; count?: number }): void;
 	};
 	commands: {
 		register(commandId: string, handler: () => void | Promise<void>): Disposable;
@@ -155,9 +165,25 @@ export interface HermesPluginAPI {
 	notifications: {
 		send(options: { title: string; body?: string }): Promise<void>;
 	};
+	network: {
+		/** Fetch a URL and return the response body as text. Requires "network" permission. */
+		fetch(url: string): Promise<string>;
+	};
+	shell: {
+		/** Open a URL in the user's default browser. Requires "network" permission. */
+		openExternal(url: string): Promise<void>;
+	};
 	sessions: {
 		getActive(): Promise<{ id: string; name: string } | null>;
 		list(): Promise<{ id: string; name: string }[]>;
+		focus(sessionId: string): Promise<void>;
+	};
+	agents: {
+		/** Watch a session's AI agent transcript in real time. Requires "sessions.read" permission. */
+		watchTranscript(
+			sessionId: string,
+			callback: (event: { type: string; tool_name?: string; timestamp: number; session_id: string }) => void,
+		): Promise<Disposable>;
 	};
 	subscriptions: Disposable[];
 }
