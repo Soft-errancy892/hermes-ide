@@ -1609,3 +1609,33 @@ html[data-theme="solarized"] {
   --scanline-opacity: 0;
   --accent-glow: none;
 }
+
+/* ─── Transilvania (Dracula-inspired) ────────────────────────── */
+
+html[data-theme="transilvania"] {
+  --bg-0: #1e1f29;
+  --bg-1: #282a36;
+  --bg-2: #313345;
+  --bg-3: #3b3d52;
+  --bg-hover: #3b3d52;
+  --bg-active: #44475a;
+  --text-0: #f8f8f2;
+  --text-1: #ccccd6;
+  --text-2: #8b8da0;
+  --text-3: #6272a4;
+  --accent: #bd93f9;
+  --accent-dim: #bd93f920;
+  --green: #50fa7b;
+  --green-dim: #50fa7b26;
+  --red: #ff5555;
+  --red-dim: #ff555526;
+  --yellow: #f1fa8c;
+  --yellow-dim: #f1fa8c26;
+  --violet: #ff79c6;
+  --violet-dim: #ff79c626;
+  --error: #ff5555;
+  --border: #44475a;
+  --border-light: #525680;
+  --scanline-opacity: 0;
+  --accent-glow: 0 0 10px #bd93f922;
+}

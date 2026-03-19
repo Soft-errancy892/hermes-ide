@@ -20,6 +20,7 @@ export const THEME_OPTIONS = [
   { id: "frosted-dark", label: "Frosted Dark" },
   { id: "solarized", label: "Solarized Light" },
   { id: "midnight", label: "Midnight Commander" },
+  { id: "transilvania", label: "Transilvania" },
 ] as const;
 
 export const UI_SCALE_OPTIONS = [

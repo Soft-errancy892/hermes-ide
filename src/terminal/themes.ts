@@ -241,6 +241,18 @@ export const THEMES: Record<string, Record<string, string>> = {
     brightYellow: "#b58900", brightBlue: "#268bd2", brightMagenta: "#6c71c4",
     brightCyan: "#2aa198", brightWhite: "#fdf6e3",
   },
+  transilvania: {
+    background: "#282a36",
+    foreground: "#f8f8f2",
+    selectionBackground: "#44475a",
+    selectionForeground: "#f8f8f2",
+    cursor: "#f8f8f2",
+    black: "#21222c", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c",
+    blue: "#bd93f9", magenta: "#ff79c6", cyan: "#8be9fd", white: "#f8f8f2",
+    brightBlack: "#6272a4", brightRed: "#ff6e6e", brightGreen: "#69ff94",
+    brightYellow: "#ffffa5", brightBlue: "#d6acff", brightMagenta: "#ff92df",
+    brightCyan: "#a4ffff", brightWhite: "#ffffff",
+  },
 };
 
 export const FONT_FAMILIES: Record<string, string> = {
