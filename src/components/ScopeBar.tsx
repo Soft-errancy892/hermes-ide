@@ -1,10 +1,13 @@
 import "../styles/components/ScopeBar.css";
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useSessionProjects, Project } from "../hooks/useSessionProjects";
 import { useSession } from "../state/SessionContext";
-import { nudgeProjectContext } from "../api/projects";
+import { nudgeProjectContext, scanProject, detachSessionProject } from "../api/projects";
+import { revealProcessInFinder } from "../api/processes";
 import { ProjectPicker } from "./ProjectPicker";
 import { useSessionGitSummary } from "../hooks/useSessionGitSummary";
+import { useContextMenu, menuItem, separator, subMenu } from "../hooks/useContextMenu";
+import { homeDir } from "@tauri-apps/api/path";
 
 const LANGUAGE_COLORS: Record<string, string> = {
   "JavaScript/TypeScript": "#f1e05a",
@@ -30,11 +33,83 @@ interface ScopeBarProps {
 }
 
 export function ScopeBar({ sessionId }: ScopeBarProps) {
-  const { state } = useSession();
+  const { state, createSession } = useSession();
   const activeSession = state.sessions[sessionId];
   const { projects, detach } = useSessionProjects(sessionId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const { allBranches } = useSessionGitSummary(sessionId, true, activeSession?.working_directory);
+
+  // Track which project was right-clicked for action handlers
+  const contextProjectRef = useRef<{ project: Project; branch?: string } | null>(null);
+
+  const handleContextAction = useCallback(async (actionId: string) => {
+    const ctx = contextProjectRef.current;
+    if (!ctx) return;
+    const { project, branch } = ctx;
+
+    switch (actionId) {
+      case "project-pill.copy-path":
+        navigator.clipboard.writeText(project.path);
+        break;
+      case "project-pill.copy-relative-path": {
+        try {
+          const home = await homeDir();
+          const relative = project.path.startsWith(home)
+            ? "~/" + project.path.slice(home.length)
+            : project.path;
+          navigator.clipboard.writeText(relative);
+        } catch {
+          navigator.clipboard.writeText(project.path);
+        }
+        break;
+      }
+      case "project-pill.copy-name":
+        navigator.clipboard.writeText(project.name);
+        break;
+      case "project-pill.copy-branch":
+        if (branch) navigator.clipboard.writeText(branch);
+        break;
+      case "project-pill.reveal":
+        revealProcessInFinder(project.path).catch(console.warn);
+        break;
+      case "project-pill.open-terminal":
+        createSession({ workingDirectory: project.path, projectIds: [project.id] }).catch(console.warn);
+        break;
+      case "project-pill.rescan":
+        scanProject(project.id, "deep").catch(console.warn);
+        break;
+      case "project-pill.detach":
+        detachSessionProject(sessionId, project.id)
+          .then(() => nudgeProjectContext(sessionId).catch(console.warn))
+          .catch(console.warn);
+        break;
+    }
+  }, [sessionId, createSession]);
+
+  const { showMenu } = useContextMenu(handleContextAction);
+
+  const handlePillContextMenu = useCallback((e: React.MouseEvent, project: Project, branch?: string) => {
+    contextProjectRef.current = { project, branch };
+
+    const copyChildren = [
+      menuItem("project-pill.copy-path", "Copy Path"),
+      menuItem("project-pill.copy-relative-path", "Copy Relative Path"),
+      menuItem("project-pill.copy-name", "Copy Project Name"),
+      menuItem("project-pill.copy-branch", "Copy Branch Name", { enabled: !!branch }),
+    ];
+
+    const items = [
+      subMenu("Copy", copyChildren),
+      separator(),
+      menuItem("project-pill.reveal", "Reveal in Finder"),
+      menuItem("project-pill.open-terminal", "Open in Terminal"),
+      separator(),
+      menuItem("project-pill.rescan", "Rescan Project"),
+      menuItem("project-pill.detach", "Detach from Session"),
+    ];
+
+    showMenu(e, items);
+  }, [showMenu]);
 
   if (projects.length === 0 && !pickerOpen) {
     return (
@@ -59,7 +134,12 @@ export function ScopeBar({ sessionId }: ScopeBarProps) {
         {projects.map((project) => {
           const branchInfo = allBranches.find(b => b.projectName === project.name);
           return (
-            <div key={project.id} className="scope-pill" title={project.path}>
+            <div
+              key={project.id}
+              className="scope-pill"
+              title={project.path}
+              onContextMenu={(e) => handlePillContextMenu(e, project, branchInfo?.branch)}
+            >
               <span
                 className="scope-pill-dot"
                 style={{ background: getLangColor(project) }}
