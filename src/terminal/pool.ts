@@ -662,7 +662,7 @@ export function detectBranchMismatch(
       isHermesWorktreePath(entry.cwd)
     ) {
       const match = entry.cwd.match(
-        /\.hermes\/worktrees\/[^/]+_(.+?)(?:\/|$)/,
+        /hermes-worktrees\/[^/]+\/[^/]+_(.+?)(?:\/|$)/,
       );
       const branch = match?.[1] || "unknown";
       return { sessionId, branch };

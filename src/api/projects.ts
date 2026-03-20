@@ -4,7 +4,7 @@ import type { ProjectContextInfo } from "../types/context";
 
 export function getProjects(): Promise<Project[]> {
   return invoke<Project[]>("get_realms").then((projects) =>
-    projects.filter((p) => !p.path.includes("/.hermes/worktrees/"))
+    projects.filter((p) => !p.path.includes("hermes-worktrees/"))
   );
 }
 

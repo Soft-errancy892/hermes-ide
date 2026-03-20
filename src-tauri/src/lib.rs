@@ -70,11 +70,19 @@ static WORKSPACE_SAVED: AtomicBool = AtomicBool::new(false);
 /// Called once during app startup. For each `session_worktrees` record whose
 /// session is missing from the `sessions` table, we remove the git worktree
 /// from disk (if it is a linked worktree) and delete the DB record. We also
-/// scan `.hermes/worktrees/` directories for orphans that have no DB record,
-/// and replay any incomplete journal operations from prior crashes. Finally,
-/// we run `git worktree prune` on every repo that had stale entries and emit
-/// a cleanup summary event to the frontend.
+/// scan `{app_data_dir}/hermes-worktrees/` directories for orphans that have
+/// no DB record, and replay any incomplete journal operations from prior
+/// crashes. Finally, we run `git worktree prune` on every repo that had
+/// stale entries and emit a cleanup summary event to the frontend.
 fn cleanup_stale_worktrees(app: &tauri::AppHandle, database: &db::Database) {
+    let app_data_dir = match app.path().app_data_dir() {
+        Ok(dir) => dir,
+        Err(e) => {
+            log::warn!("Startup worktree cleanup: failed to get app data dir: {}", e);
+            return;
+        }
+    };
+
     let all_worktrees = match database.get_all_session_worktrees() {
         Ok(wts) => wts,
         Err(e) => {
@@ -149,14 +157,15 @@ fn cleanup_stale_worktrees(app: &tauri::AppHandle, database: &db::Database) {
             .collect();
 
         for realm in &realms {
-            let worktree_dir = Path::new(&realm.path).join(".hermes").join("worktrees");
-            if !worktree_dir.is_dir() {
+            let wt_dir = git::worktree::worktree_dir(&app_data_dir, &realm.path);
+            if !wt_dir.is_dir() {
                 continue;
             }
 
-            if let Ok(entries) = std::fs::read_dir(&worktree_dir) {
+            if let Ok(entries) = std::fs::read_dir(&wt_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
+                    // Skip non-directories and marker files (repo_path.txt)
                     if !path.is_dir() {
                         continue;
                     }
@@ -189,7 +198,7 @@ fn cleanup_stale_worktrees(app: &tauri::AppHandle, database: &db::Database) {
             }
 
             // Replay incomplete journal operations for this realm
-            let incomplete = git::journal::get_incomplete_operations(&realm.path);
+            let incomplete = git::journal::get_incomplete_operations(&app_data_dir, &realm.path);
             for entry in &incomplete {
                 match entry.action.as_str() {
                     "CREATE" => {
@@ -240,7 +249,39 @@ fn cleanup_stale_worktrees(app: &tauri::AppHandle, database: &db::Database) {
                 }
             }
             // Clear the journal after replay
-            git::journal::clear_journal(&realm.path);
+            git::journal::clear_journal(&app_data_dir, &realm.path);
+        }
+    }
+
+    // Migration: clean up old .hermes/worktrees/ directories from previous versions.
+    // These are no longer used since worktrees are now stored in the app data directory.
+    if let Ok(realms) = database.get_all_realms() {
+        for realm in &realms {
+            let old_worktree_dir = Path::new(&realm.path).join(".hermes").join("worktrees");
+            if old_worktree_dir.is_dir() {
+                log::info!(
+                    "Migration: removing old .hermes/worktrees/ from '{}'",
+                    realm.path
+                );
+                // Prune git worktree metadata first
+                let _ = std::process::Command::new("git")
+                    .arg("-C")
+                    .arg(&realm.path)
+                    .arg("worktree")
+                    .arg("prune")
+                    .output();
+                let _ = std::fs::remove_dir_all(&old_worktree_dir);
+            }
+            // Also clean up the old journal file
+            let old_journal = Path::new(&realm.path).join(".hermes").join("worktree-journal.log");
+            if old_journal.exists() {
+                let _ = std::fs::remove_file(&old_journal);
+            }
+            // Remove .hermes/ directory if it's now empty
+            let hermes_dir = Path::new(&realm.path).join(".hermes");
+            if hermes_dir.is_dir() {
+                let _ = std::fs::remove_dir(&hermes_dir); // Only succeeds if empty
+            }
         }
     }
 

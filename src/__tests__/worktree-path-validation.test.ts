@@ -5,7 +5,7 @@
  *
  * The FIXED version uses `newCwd.startsWith(entry.cwd + '/')` (or exact match)
  * instead of a bare `newCwd.startsWith(entry.cwd)` so that a CWD of
- * `/worktrees/abc_main` does NOT match `/worktrees/abc_main-feature`.
+ * `/a1b2c3d4e5f6a7b8/abc_main` does NOT match `/a1b2c3d4e5f6a7b8/abc_main-feature`.
  */
 import { describe, it, expect, vi } from "vitest";
 
@@ -44,17 +44,17 @@ function detectBranchMismatch(
   currentSessionId: string,
   newCwd: string,
 ): { sessionId: string; branch: string } | null {
-  if (!newCwd.includes(".hermes/worktrees/")) return null;
+  if (!newCwd.includes("hermes-worktrees/")) return null;
 
   for (const [sessionId, entry] of pool.entries()) {
     if (sessionId === currentSessionId) continue;
     if (
       entry.cwd &&
       (newCwd === entry.cwd || newCwd.startsWith(entry.cwd + '/')) &&
-      entry.cwd.includes(".hermes/worktrees/")
+      entry.cwd.includes("hermes-worktrees/")
     ) {
       const match = entry.cwd.match(
-        /\.hermes\/worktrees\/[^/]+_(.+?)(?:\/|$)/,
+        /hermes-worktrees\/[^/]+\/[^/]+_(.+?)(?:\/|$)/,
       );
       const branch = match?.[1] || "unknown";
       return { sessionId, branch };
@@ -72,13 +72,13 @@ describe("detectBranchMismatch — path boundary", () => {
     // /abc_main should NOT match /abc_main-feature
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_main",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main-feature/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main-feature/src",
     );
     expect(result).toBeNull();
   });
@@ -87,13 +87,13 @@ describe("detectBranchMismatch — path boundary", () => {
     // /abc_main should match /abc_main
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_main",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-2");
@@ -104,13 +104,13 @@ describe("detectBranchMismatch — path boundary", () => {
     // /abc_main/src should match /abc_main
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_main",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main/src",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-2");
@@ -118,16 +118,16 @@ describe("detectBranchMismatch — path boundary", () => {
   });
 
   it("does not match partial prefix without slash", () => {
-    // /worktrees/feat should NOT match /worktrees/feature
+    // /a1b2c3d4e5f6a7b8/feat should NOT match /a1b2c3d4e5f6a7b8/feature
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_feat",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feat",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_feature/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature/src",
     );
     expect(result).toBeNull();
   });
@@ -136,13 +136,13 @@ describe("detectBranchMismatch — path boundary", () => {
     // /worktrees/abc_develop should NOT match /worktrees/abc_develop-v2
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_develop",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_develop",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_develop-v2",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_develop-v2",
     );
     expect(result).toBeNull();
   });
@@ -150,13 +150,13 @@ describe("detectBranchMismatch — path boundary", () => {
   it("matches deeply nested paths under exact worktree", () => {
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_feature-login",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature-login",
     });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_feature-login/src/components/deep/nested",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature-login/src/components/deep/nested",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-2");
@@ -167,17 +167,17 @@ describe("detectBranchMismatch — path boundary", () => {
     // Two worktrees: abc_main and abc_main-v2. They should NOT cross-match.
     const pool = new Map<string, PoolEntry>();
     pool.set("session-2", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_main",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main",
     });
     pool.set("session-3", {
-      cwd: "/Users/dev/project/.hermes/worktrees/abc_main-v2",
+      cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main-v2",
     });
 
     // Navigating into session-3's worktree should match session-3, not session-2
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main-v2/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main-v2/src",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-3");

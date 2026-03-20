@@ -152,7 +152,7 @@ function filterGroups(groups: RealmGroup[], search: string): RealmGroup[] {
 
 function makeWorktreeEntry(overrides: Partial<WorktreeOverviewEntry> = {}): WorktreeOverviewEntry {
   return {
-    worktree_path: "/Users/dev/project/.hermes/worktrees/abc_feature",
+    worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature",
     branch_name: "feature",
     session_id: "session-1",
     session_label: "Session 1",
@@ -168,7 +168,7 @@ function makeWorktreeEntry(overrides: Partial<WorktreeOverviewEntry> = {}): Work
 
 function makeOrphan(overrides: Partial<OrphanWorktree> = {}): OrphanWorktree {
   return {
-    worktree_path: "/Users/dev/project/.hermes/worktrees/orphan_branch",
+    worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan_branch",
     branch_name: "branch",
     kind: "directory_only",
     realm_path: "/Users/dev/project",
@@ -218,7 +218,7 @@ describe("API bindings - detectOrphanWorktrees", () => {
 
 describe("API bindings - worktreeDiskUsage", () => {
   it("invokes correct IPC command with path", async () => {
-    const path = "/Users/dev/project/.hermes/worktrees/abc_feature";
+    const path = "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature";
     vi.mocked(invoke).mockResolvedValue(1048576);
 
     const result = await worktreeDiskUsage(path);
@@ -231,8 +231,8 @@ describe("API bindings - worktreeDiskUsage", () => {
 describe("API bindings - cleanupOrphanWorktrees", () => {
   it("invokes correct IPC command with paths array", async () => {
     const paths = [
-      "/Users/dev/project/.hermes/worktrees/orphan1",
-      "/Users/dev/project/.hermes/worktrees/orphan2",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan1",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan2",
     ];
     const mockResults: CleanupResult[] = [
       { path: paths[0], success: true, error: null },
@@ -340,11 +340,11 @@ describe("Orphan classification", () => {
   it("both types have worktree_path", () => {
     const dirOnly = makeOrphan({
       kind: "directory_only",
-      worktree_path: "/Users/dev/project/.hermes/worktrees/abc_feature",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature",
     });
     const recOnly = makeOrphan({
       kind: "record_only",
-      worktree_path: "/Users/dev/project/.hermes/worktrees/def_develop",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/def_develop",
     });
 
     expect(dirOnly.worktree_path).toBeTruthy();
@@ -358,7 +358,7 @@ describe("Orphan classification", () => {
     // from the worktree directory name (the part after the underscore)
     const orphan = makeOrphan({
       kind: "directory_only",
-      worktree_path: "/Users/dev/project/.hermes/worktrees/abc123_feature-login",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc123_feature-login",
       branch_name: "feature-login",
     });
     expect(orphan.branch_name).toBe("feature-login");
@@ -447,7 +447,7 @@ describe("Worktree grouping", () => {
       realm_path: "/Users/dev/frontend",
       branch_name: "feature/login",
       session_label: "Login session",
-      worktree_path: "/Users/dev/frontend/.hermes/worktrees/a_feature-login",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/a_feature-login",
     }),
     makeWorktreeEntry({
       realm_id: "realm-1",
@@ -455,7 +455,7 @@ describe("Worktree grouping", () => {
       realm_path: "/Users/dev/frontend",
       branch_name: "develop",
       session_label: "Dev session",
-      worktree_path: "/Users/dev/frontend/.hermes/worktrees/b_develop",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/b_develop",
     }),
     makeWorktreeEntry({
       realm_id: "realm-2",
@@ -463,7 +463,7 @@ describe("Worktree grouping", () => {
       realm_path: "/Users/dev/backend",
       branch_name: "main",
       session_label: "Backend main",
-      worktree_path: "/Users/dev/backend/.hermes/worktrees/c_main",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/c_main",
     }),
     makeWorktreeEntry({
       realm_id: "realm-3",
@@ -471,7 +471,7 @@ describe("Worktree grouping", () => {
       realm_path: "/Users/dev/api-gateway",
       branch_name: "hotfix/auth",
       session_label: "Auth fix",
-      worktree_path: "/Users/dev/api-gateway/.hermes/worktrees/d_hotfix-auth",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/d_hotfix-auth",
     }),
   ];
 
@@ -572,7 +572,7 @@ describe("Worktree grouping", () => {
   it("orphans grouped with matching realm by realm_path", () => {
     const orphan = makeOrphan({
       realm_path: "/Users/dev/frontend",
-      worktree_path: "/Users/dev/frontend/.hermes/worktrees/orphan_old",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan_old",
       branch_name: "old-branch",
       kind: "directory_only",
     });
@@ -581,14 +581,14 @@ describe("Worktree grouping", () => {
     const frontendGroup = groups.find((g) => g.realmId === "realm-1")!;
     expect(frontendGroup.orphans).toHaveLength(1);
     expect(frontendGroup.orphans[0].worktree_path).toBe(
-      "/Users/dev/frontend/.hermes/worktrees/orphan_old",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan_old",
     );
   });
 
   it("orphans without matching realm create standalone group", () => {
     const orphan = makeOrphan({
       realm_path: "/Users/dev/unknown-project",
-      worktree_path: "/Users/dev/unknown-project/.hermes/worktrees/orphan_x",
+      worktree_path: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/orphan_x",
       kind: "directory_only",
     });
     const groups = groupByRealm(worktrees, [orphan]);

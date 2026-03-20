@@ -10,22 +10,23 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::db::Database;
 use crate::AppState;
 
-/// Validates that a path is inside a .hermes/worktrees/ directory.
-/// Returns the canonical path if valid, or an error if the path is outside
-/// the expected worktree directory (prevents path traversal attacks).
+/// Validates that a path is inside the Hermes worktrees directory
+/// (`hermes-worktrees/`). Returns the canonical path if valid, or an error
+/// if the path is outside the expected worktree directory (prevents path
+/// traversal attacks).
 fn validate_worktree_path(path: &str) -> Result<std::path::PathBuf, String> {
     let p = std::path::Path::new(path);
 
     // First check the raw path string before canonicalizing
     // (canonicalize follows symlinks, which we want for the final check)
-    if !path.contains(".hermes/worktrees/") && !path.contains(".hermes\\worktrees\\") {
+    if !worktree::is_hermes_worktree_path(path) {
         return Err(format!(
-            "Refusing to operate on '{}': not inside a .hermes/worktrees/ directory",
+            "Refusing to operate on '{}': not inside a hermes-worktrees/ directory",
             path
         ));
     }
@@ -36,11 +37,9 @@ fn validate_worktree_path(path: &str) -> Result<std::path::PathBuf, String> {
             .canonicalize()
             .map_err(|e| format!("Failed to resolve path '{}': {}", path, e))?;
         let canonical_str = canonical.to_string_lossy();
-        if !canonical_str.contains(".hermes/worktrees/")
-            && !canonical_str.contains(".hermes\\worktrees\\")
-        {
+        if !worktree::is_hermes_worktree_path(&canonical_str) {
             return Err(format!(
-                "Refusing to operate on '{}': canonical path '{}' is not inside a .hermes/worktrees/ directory",
+                "Refusing to operate on '{}': canonical path '{}' is not inside a hermes-worktrees/ directory",
                 path, canonical_str
             ));
         }
@@ -2741,6 +2740,12 @@ pub fn git_create_worktree(
     branch_name: String,
     create_branch: bool,
 ) -> Result<worktree::WorktreeCreateResult, String> {
+    // Get the app data directory for storing worktrees outside the project
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
     // 1. Get realm path from DB
     let db = state
         .db
@@ -2754,8 +2759,9 @@ pub fn git_create_worktree(
     drop(db);
 
     // Journal: log the CREATE operation before performing it
-    let intended_path = worktree::worktree_path_for_session(&realm_path, &session_id, &branch_name);
+    let intended_path = worktree::worktree_path_for_session(&app_data_dir, &realm_path, &session_id, &branch_name);
     let _ = journal::log_operation(
+        &app_data_dir,
         &realm_path,
         "CREATE",
         &session_id,
@@ -2765,7 +2771,7 @@ pub fn git_create_worktree(
     );
 
     // 2. Create the worktree
-    let result = worktree::create_worktree(&realm_path, &session_id, &branch_name, create_branch)?;
+    let result = worktree::create_worktree(&app_data_dir, &realm_path, &session_id, &branch_name, create_branch)?;
 
     // 3. Insert into session_worktrees table — if this fails, roll back the worktree
     let id = uuid::Uuid::new_v4().to_string();
@@ -2791,7 +2797,7 @@ pub fn git_create_worktree(
     drop(db);
 
     // Journal: mark CREATE as completed after successful creation + DB insert
-    let _ = journal::log_completed(&realm_path, "CREATE", &session_id, &realm_id);
+    let _ = journal::log_completed(&app_data_dir, &realm_path, "CREATE", &session_id, &realm_id);
 
     // 4. Emit event for frontend
     let _ = app.emit(&format!("worktree-created-{}", realm_id), &result);
@@ -2838,8 +2844,14 @@ pub fn git_remove_worktree(
         );
     }
 
+    // Get the app data directory for journal storage
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
     // Journal: log the REMOVE operation before performing it
-    let _ = journal::log_operation(&realm_path, "REMOVE", &session_id, &realm_id, "", &wt_path);
+    let _ = journal::log_operation(&app_data_dir, &realm_path, "REMOVE", &session_id, &realm_id, "", &wt_path);
 
     // 2. Try to remove the worktree from the filesystem
     let remove_result = worktree::remove_worktree(&realm_path, &session_id, &wt_path);
@@ -2865,7 +2877,7 @@ pub fn git_remove_worktree(
     }
 
     // Journal: mark REMOVE as completed after successful removal + DB delete
-    let _ = journal::log_completed(&realm_path, "REMOVE", &session_id, &realm_id);
+    let _ = journal::log_completed(&app_data_dir, &realm_path, "REMOVE", &session_id, &realm_id);
 
     // 4. Emit event for frontend
     let _ = app.emit(&format!("worktree-removed-{}", realm_id), ());
@@ -3283,8 +3295,14 @@ pub fn git_list_all_worktrees(
 
 #[tauri::command]
 pub fn git_detect_orphan_worktrees(
+    app: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<Vec<OrphanWorktree>, String> {
+    let app_data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+
     // 1. Collect all DB data while holding the lock
     let (all_records, realms) = {
         let db = state
@@ -3324,32 +3342,33 @@ pub fn git_detect_orphan_worktrees(
     }
 
     // 3. Check for "directory_only" — directory exists but no DB record
+    //    Scan each realm's worktree hash directory in the app data dir
     for realm in &realms {
-        let worktree_dir = std::path::Path::new(&realm.path)
-            .join(".hermes")
-            .join("worktrees");
-        if worktree_dir.is_dir() {
-            if let Ok(entries) = std::fs::read_dir(&worktree_dir) {
+        let wt_dir = worktree::worktree_dir(&app_data_dir, &realm.path);
+        if wt_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&wt_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
-                    if path.is_dir() {
-                        let path_str = path
-                            .to_string_lossy()
-                            .trim_end_matches('/')
-                            .trim_end_matches('\\')
-                            .to_string();
-                        if !record_paths.contains(&path_str) {
-                            // Extract branch name from directory name: {session_prefix}_{branch}
-                            let dir_name = path.file_name().unwrap_or_default().to_string_lossy();
-                            let branch = dir_name.split_once('_').map(|x| x.1.to_string());
-                            orphans.push(OrphanWorktree {
-                                worktree_path: path_str,
-                                branch_name: branch,
-                                kind: "directory_only".to_string(),
-                                realm_path: Some(realm.path.clone()),
-                                session_id: None,
-                            });
-                        }
+                    // Skip non-directories and the repo_path.txt marker file
+                    if !path.is_dir() {
+                        continue;
+                    }
+                    let path_str = path
+                        .to_string_lossy()
+                        .trim_end_matches('/')
+                        .trim_end_matches('\\')
+                        .to_string();
+                    if !record_paths.contains(&path_str) {
+                        // Extract branch name from directory name: {session_prefix}_{branch}
+                        let dir_name = path.file_name().unwrap_or_default().to_string_lossy();
+                        let branch = dir_name.split_once('_').map(|x| x.1.to_string());
+                        orphans.push(OrphanWorktree {
+                            worktree_path: path_str,
+                            branch_name: branch,
+                            kind: "directory_only".to_string(),
+                            realm_path: Some(realm.path.clone()),
+                            session_id: None,
+                        });
                     }
                 }
             }
@@ -3410,16 +3429,17 @@ pub fn git_cleanup_orphan_worktrees(
             // Try to remove the directory
             match std::fs::remove_dir_all(&validated) {
                 Ok(()) => {
-                    // Also try to clean up any git worktree metadata
-                    // Find the parent repo (go up from .hermes/worktrees/xxx to repo root)
-                    if let Some(repo_root) = validated.ancestors().find(|a| a.join(".git").exists())
-                    {
-                        let _ = std::process::Command::new("git")
-                            .arg("-C")
-                            .arg(repo_root)
-                            .arg("worktree")
-                            .arg("prune")
-                            .output();
+                    // Also try to clean up any git worktree metadata.
+                    // The repo hash dir contains repo_path.txt to find the repo root.
+                    if let Some(hash_dir) = validated.parent() {
+                        if let Some(repo_path) = worktree::read_repo_path(hash_dir) {
+                            let _ = std::process::Command::new("git")
+                                .arg("-C")
+                                .arg(repo_path.trim())
+                                .arg("worktree")
+                                .arg("prune")
+                                .output();
+                        }
                     }
                     results.push(CleanupResult {
                         path: path.clone(),

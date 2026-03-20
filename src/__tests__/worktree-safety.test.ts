@@ -108,17 +108,17 @@ function detectBranchMismatch(
   currentSessionId: string,
   newCwd: string,
 ): { sessionId: string; branch: string } | null {
-  if (!newCwd.includes(".hermes/worktrees/")) return null;
+  if (!newCwd.includes("hermes-worktrees/")) return null;
 
   for (const [sessionId, entry] of pool.entries()) {
     if (sessionId === currentSessionId) continue;
     if (
       entry.cwd &&
       newCwd.startsWith(entry.cwd) &&
-      entry.cwd.includes(".hermes/worktrees/")
+      entry.cwd.includes("hermes-worktrees/")
     ) {
       const match = entry.cwd.match(
-        /\.hermes\/worktrees\/[^/]+_(.+?)(?:\/|$)/,
+        /hermes-worktrees\/[^/]+\/[^/]+_(.+?)(?:\/|$)/,
       );
       const branch = match?.[1] || "unknown";
       return { sessionId, branch };
@@ -211,9 +211,9 @@ describe("API bindings - stashWorktree", () => {
 // =====================================================================
 
 describe("Branch mismatch detection", () => {
-  it("returns null when CWD does not contain .hermes/worktrees/", () => {
+  it("returns null when CWD does not contain hermes-worktrees/", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-other", { cwd: "/Users/dev/project/.hermes/worktrees/abc_feature" });
+    pool.set("session-other", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature" });
 
     const result = detectBranchMismatch(pool, "session-1", "/Users/dev/project/src");
     expect(result).toBeNull();
@@ -221,12 +221,12 @@ describe("Branch mismatch detection", () => {
 
   it("returns null when CWD is in current session's own worktree", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-1", { cwd: "/Users/dev/project/.hermes/worktrees/abc_feature-login" });
+    pool.set("session-1", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature-login" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_feature-login/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feature-login/src",
     );
     // session-1 is the current session, so it should be skipped
     expect(result).toBeNull();
@@ -234,13 +234,13 @@ describe("Branch mismatch detection", () => {
 
   it("returns mismatch when CWD enters another session's worktree", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-1", { cwd: "/Users/dev/project/.hermes/worktrees/abc_main" });
-    pool.set("session-2", { cwd: "/Users/dev/project/.hermes/worktrees/def_feature-login" });
+    pool.set("session-1", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main" });
+    pool.set("session-2", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/def_feature-login" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/def_feature-login/src/components",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/def_feature-login/src/components",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-2");
@@ -249,12 +249,12 @@ describe("Branch mismatch detection", () => {
 
   it("extracts branch name from worktree path correctly", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-2", { cwd: "/Users/dev/project/.hermes/worktrees/abc123_develop" });
+    pool.set("session-2", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc123_develop" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc123_develop/deep/path",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc123_develop/deep/path",
     );
     expect(result).not.toBeNull();
     expect(result!.branch).toBe("develop");
@@ -262,12 +262,12 @@ describe("Branch mismatch detection", () => {
 
   it("handles paths with multiple segments after worktree root", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-2", { cwd: "/Users/dev/project/.hermes/worktrees/abc_feat-x" });
+    pool.set("session-2", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feat-x" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_feat-x/a/b/c/d/e",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_feat-x/a/b/c/d/e",
     );
     expect(result).not.toBeNull();
     expect(result!.sessionId).toBe("session-2");
@@ -276,14 +276,14 @@ describe("Branch mismatch detection", () => {
 
   it("returns null when no other sessions have worktrees", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-1", { cwd: "/Users/dev/project/.hermes/worktrees/abc_main" });
+    pool.set("session-1", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main" });
     pool.set("session-2", { cwd: "/Users/dev/other-project" });
     pool.set("session-3", { cwd: null });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/xyz_feature/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/xyz_feature/src",
     );
     // session-2 has no worktree path, session-3 has null CWD
     expect(result).toBeNull();
@@ -295,7 +295,7 @@ describe("Branch mismatch detection", () => {
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main/src",
     );
     expect(result).toBeNull();
   });
@@ -303,12 +303,12 @@ describe("Branch mismatch detection", () => {
   it("returns 'unknown' when branch name cannot be extracted from path", () => {
     const pool = new Map<string, PoolEntry>();
     // Worktree path without the underscore separator
-    pool.set("session-2", { cwd: "/Users/dev/project/.hermes/worktrees/nounderscore" });
+    pool.set("session-2", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/nounderscore" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/nounderscore/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/nounderscore/src",
     );
     expect(result).not.toBeNull();
     expect(result!.branch).toBe("unknown");
@@ -316,13 +316,13 @@ describe("Branch mismatch detection", () => {
 
   it("matches the first other session when multiple sessions share the same worktree root", () => {
     const pool = new Map<string, PoolEntry>();
-    pool.set("session-2", { cwd: "/Users/dev/project/.hermes/worktrees/abc_main" });
-    pool.set("session-3", { cwd: "/Users/dev/project/.hermes/worktrees/abc_main" });
+    pool.set("session-2", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main" });
+    pool.set("session-3", { cwd: "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main" });
 
     const result = detectBranchMismatch(
       pool,
       "session-1",
-      "/Users/dev/project/.hermes/worktrees/abc_main/src",
+      "/app/data/hermes-worktrees/a1b2c3d4e5f6a7b8/abc_main/src",
     );
     expect(result).not.toBeNull();
     // Should match the first one found (session-2 since Map preserves insertion order)

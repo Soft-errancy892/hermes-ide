@@ -2,15 +2,21 @@ use std::fs::{read_to_string, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 
-const JOURNAL_FILENAME: &str = ".hermes/worktree-journal.log";
+use super::worktree;
+
+const JOURNAL_FILENAME: &str = "worktree-journal.log";
+
+/// Build the path to the journal file for a given repo.
+/// Stored in `{app_data_dir}/hermes-worktrees/{repo_hash}/worktree-journal.log`.
+pub fn journal_path(app_data_dir: &Path, repo_path: &str) -> std::path::PathBuf {
+    let dir = worktree::worktree_dir(app_data_dir, repo_path);
+    dir.join(JOURNAL_FILENAME)
+}
 
 /// Log format: ACTION\tsession_id\trealm_id\tbranch\tworktree_path\ttimestamp
 /// When ACTION completes, a COMPLETED line is appended.
-pub fn journal_path(repo_path: &str) -> std::path::PathBuf {
-    Path::new(repo_path).join(JOURNAL_FILENAME)
-}
-
 pub fn log_operation(
+    app_data_dir: &Path,
     repo_path: &str,
     action: &str,
     session_id: &str,
@@ -18,7 +24,7 @@ pub fn log_operation(
     branch: &str,
     worktree_path: &str,
 ) -> Result<(), String> {
-    let path = journal_path(repo_path);
+    let path = journal_path(app_data_dir, repo_path);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
             let msg = format!("Failed to create journal directory {:?}: {}", parent, e);
@@ -49,12 +55,14 @@ pub fn log_operation(
 }
 
 pub fn log_completed(
+    app_data_dir: &Path,
     repo_path: &str,
     action: &str,
     session_id: &str,
     realm_id: &str,
 ) -> Result<(), String> {
     log_operation(
+        app_data_dir,
         repo_path,
         &format!("COMPLETED_{}", action),
         session_id,
@@ -65,8 +73,8 @@ pub fn log_completed(
 }
 
 /// Check for incomplete operations on startup
-pub fn get_incomplete_operations(repo_path: &str) -> Vec<JournalEntry> {
-    let path = journal_path(repo_path);
+pub fn get_incomplete_operations(app_data_dir: &Path, repo_path: &str) -> Vec<JournalEntry> {
+    let path = journal_path(app_data_dir, repo_path);
     if !path.exists() {
         return Vec::new();
     }
@@ -115,8 +123,8 @@ pub fn get_incomplete_operations(repo_path: &str) -> Vec<JournalEntry> {
     pending.into_values().collect()
 }
 
-pub fn clear_journal(repo_path: &str) {
-    let path = journal_path(repo_path);
+pub fn clear_journal(app_data_dir: &Path, repo_path: &str) {
+    let path = journal_path(app_data_dir, repo_path);
     let _ = std::fs::remove_file(&path);
 }
 

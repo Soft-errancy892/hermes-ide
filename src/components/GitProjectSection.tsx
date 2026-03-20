@@ -38,7 +38,7 @@ function truncatePath(fullPath: string, maxLen = 45): string {
 }
 
 function isWorktreePath(path: string): boolean {
-  return path.includes("/.hermes/worktrees/");
+  return path.includes("hermes-worktrees/");
 }
 
 export function GitProjectSection({ sessionId, realmId, project, onRefresh, onDiffFile, onToast }: GitProjectSectionProps) {
