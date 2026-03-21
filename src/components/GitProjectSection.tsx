@@ -41,6 +41,23 @@ function isWorktreePath(path: string): boolean {
   return path.includes("hermes-worktrees/");
 }
 
+/**
+ * Extract a user-friendly display name from a worktree path.
+ * Worktree paths look like: .../hermes-worktrees/<hash>/<session>_<branch>
+ * We extract the branch name (after the last underscore in the directory name).
+ */
+export function friendlyWorktreeLabel(projectName: string, projectPath: string): string {
+  if (!isWorktreePath(projectPath)) return projectName;
+  const dirName = projectPath.split("/").pop() || "";
+  // The branch name is after the last underscore separator
+  const underscoreIdx = dirName.indexOf("_");
+  if (underscoreIdx >= 0) {
+    const branchPart = dirName.slice(underscoreIdx + 1);
+    if (branchPart) return `${projectName} (${branchPart})`;
+  }
+  return projectName;
+}
+
 export function GitProjectSection({ sessionId, projectId, project, onRefresh, onDiffFile, onToast }: GitProjectSectionProps) {
   const [expanded, setExpanded] = useState(true);
   const [commitMsg, setCommitMsg] = useState("");
@@ -292,11 +309,15 @@ export function GitProjectSection({ sessionId, projectId, project, onRefresh, on
         {project.behind > 0 && <span className="git-project-behind" title={`${project.behind} behind`}>&darr;{project.behind}</span>}
       </div>
       {expanded && project.project_path && (
-        <div className="git-project-path" title={project.project_path}>
+        <div className="git-project-path" title={isWorktreePath(project.project_path) ? friendlyWorktreeLabel(project.project_name, project.project_path) : project.project_path}>
           <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12" className="git-project-path-icon">
             <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2c-.33-.44-.85-.7-1.4-.7Z" />
           </svg>
-          <span className="git-project-path-text">{truncatePath(project.project_path)}</span>
+          <span className="git-project-path-text">
+            {isWorktreePath(project.project_path)
+              ? friendlyWorktreeLabel(project.project_name, project.project_path)
+              : truncatePath(project.project_path)}
+          </span>
         </div>
       )}
 

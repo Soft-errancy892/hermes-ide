@@ -1874,37 +1874,74 @@ pub fn close_session(
             let _ = db.cleanup_session_pins(&session_id);
         }
 
-        // Clean up linked worktrees for this session
+        // Clean up linked worktrees for this session.
+        // We track which worktrees were successfully removed so we only
+        // delete those DB records.  Records for failed removals are kept
+        // so they can be cleaned up on next startup.  Shared worktrees
+        // (ref count > 1) skip disk deletion to avoid breaking other sessions.
         if let Ok(db) = state.db.lock() {
             match db.get_session_worktrees(&session_id) {
                 Ok(worktrees) => {
+                    let mut successfully_handled: Vec<String> = Vec::new();
+
                     for wt in &worktrees {
                         if wt.is_main_worktree {
-                            continue; // Don't remove the main worktree
+                            // Main worktrees don't need disk cleanup
+                            successfully_handled.push(wt.id.clone());
+                            continue;
                         }
+
+                        // Check if other sessions share this worktree path
+                        let ref_count = db
+                            .count_sessions_for_worktree_path(&wt.worktree_path)
+                            .unwrap_or(1);
+
+                        if ref_count > 1 {
+                            // Other sessions still use this worktree — skip disk deletion
+                            log::info!(
+                                "Worktree '{}' shared by {} sessions, skipping disk removal",
+                                wt.worktree_path,
+                                ref_count
+                            );
+                            successfully_handled.push(wt.id.clone());
+                            continue;
+                        }
+
                         // Look up project path to run git worktree remove
                         if let Ok(Some(proj)) = db.get_project(&wt.project_id) {
-                            if let Err(e) = crate::git::worktree::remove_worktree(
+                            match crate::git::worktree::remove_worktree(
                                 &proj.path,
                                 &session_id,
                                 &wt.worktree_path,
                             ) {
-                                log::warn!(
-                                    "Failed to remove worktree '{}' for session '{}': {}",
-                                    wt.worktree_path,
-                                    session_id,
-                                    e
-                                );
+                                Ok(()) => {
+                                    successfully_handled.push(wt.id.clone());
+                                }
+                                Err(e) => {
+                                    log::warn!(
+                                        "Failed to remove worktree '{}' for session '{}': {} — keeping DB record for retry",
+                                        wt.worktree_path,
+                                        session_id,
+                                        e
+                                    );
+                                }
                             }
+                        } else {
+                            // Project not found — can't remove worktree from disk,
+                            // but we can still clean up the DB record
+                            successfully_handled.push(wt.id.clone());
                         }
                     }
-                    // Delete all worktree DB records for this session
-                    if let Err(e) = db.delete_worktrees_for_session(&session_id) {
-                        log::warn!(
-                            "Failed to delete worktree records for session '{}': {}",
-                            session_id,
-                            e
-                        );
+
+                    // Only delete DB records for successfully handled worktrees
+                    for id in &successfully_handled {
+                        if let Err(e) = db.delete_session_worktree(id) {
+                            log::warn!(
+                                "Failed to delete worktree DB record '{}': {}",
+                                id,
+                                e
+                            );
+                        }
                     }
                 }
                 Err(e) => {

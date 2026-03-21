@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import "../styles/components/DirtyWorktreeDialog.css";
 
 export interface DirtyWorktreeChange {
@@ -18,7 +18,7 @@ interface DirtyWorktreeDialogProps {
   sessionLabel: string;
   changes: DirtyWorktreeChange[];
   stashErrors?: StashError[];
-  onStashAndClose: () => void;
+  onStashAndClose: () => Promise<void> | void;
   onCloseAnyway: () => void;
   onCancel: () => void;
 }
@@ -42,6 +42,35 @@ function statusClass(status: string): string {
   }
 }
 
+export function groupFilesByStatus(
+  files: Array<{ path: string; status: string }>,
+): { modified: number; added: number; deleted: number; other: number } {
+  let modified = 0;
+  let added = 0;
+  let deleted = 0;
+  let other = 0;
+  for (const file of files) {
+    const label = statusLabel(file.status);
+    if (label === "M") modified++;
+    else if (label === "A") added++;
+    else if (label === "D") deleted++;
+    else other++;
+  }
+  return { modified, added, deleted, other };
+}
+
+export function formatFileBreakdown(
+  files: Array<{ path: string; status: string }>,
+): string {
+  const { modified, added, deleted, other } = groupFilesByStatus(files);
+  const parts: string[] = [];
+  if (modified > 0) parts.push(`${modified} modified`);
+  if (added > 0) parts.push(`${added} new`);
+  if (deleted > 0) parts.push(`${deleted} deleted`);
+  if (other > 0) parts.push(`${other} other`);
+  return parts.join(", ");
+}
+
 export function DirtyWorktreeDialog({
   sessionLabel,
   changes,
@@ -51,8 +80,24 @@ export function DirtyWorktreeDialog({
   onCancel,
 }: DirtyWorktreeDialogProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const [stashing, setStashing] = useState(false);
+
+  const handleStashAndClose = useCallback(async () => {
+    setStashing(true);
+    try {
+      await onStashAndClose();
+    } finally {
+      setStashing(false);
+    }
+  }, [onStashAndClose]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (stashing) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
@@ -63,7 +108,7 @@ export function DirtyWorktreeDialog({
     // Focus trapping within the dialog
     if (e.key === "Tab" && modalRef.current) {
       const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -80,7 +125,7 @@ export function DirtyWorktreeDialog({
         }
       }
     }
-  }, [onCancel]);
+  }, [onCancel, stashing]);
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -96,9 +141,11 @@ export function DirtyWorktreeDialog({
   }, []);
 
   const totalFiles = changes.reduce((sum, c) => sum + c.files.length, 0);
+  const allFiles = changes.flatMap((c) => c.files);
+  const breakdown = formatFileBreakdown(allFiles);
 
   return (
-    <div className="dirty-wt-overlay" onClick={onCancel}>
+    <div className="dirty-wt-overlay" onClick={stashing ? undefined : onCancel}>
       <div
         className="dirty-wt-modal"
         ref={modalRef}
@@ -111,15 +158,21 @@ export function DirtyWorktreeDialog({
         <div className="dirty-wt-header">
           <span className="dirty-wt-icon">&#9888;</span>
           <span className="dirty-wt-title" id="dirty-wt-dialog-title">Uncommitted Changes</span>
-          <button className="dirty-wt-close" onClick={onCancel} aria-label="Close">&times;</button>
+          <button className="dirty-wt-close" onClick={onCancel} disabled={stashing} aria-label="Close">&times;</button>
         </div>
 
         {/* Body */}
         <div className="dirty-wt-body">
           <p className="dirty-wt-message">
             Session <span className="dirty-wt-session-name">{sessionLabel}</span> has{" "}
-            {totalFiles} uncommitted {totalFiles === 1 ? "change" : "changes"} across{" "}
+            {totalFiles} uncommitted {totalFiles === 1 ? "change" : "changes"} ({breakdown}) across{" "}
             {changes.length} {changes.length === 1 ? "project" : "projects"}.
+          </p>
+          <p className="dirty-wt-warning">
+            Closing this session will permanently delete its working directory and all uncommitted changes.
+          </p>
+          <p className="dirty-wt-stash-hint">
+            Stashing saves your changes safely in the main repository. You can recover them later with <code>git stash pop</code>.
           </p>
 
           {changes.map((change) => (
@@ -129,6 +182,9 @@ export function DirtyWorktreeDialog({
                 {change.branchName && (
                   <span className="dirty-wt-branch-name">{change.branchName}</span>
                 )}
+                <span className="dirty-wt-file-breakdown">
+                  {formatFileBreakdown(change.files)}
+                </span>
               </div>
               <ul className="dirty-wt-file-list">
                 {change.files.map((file) => (
@@ -157,27 +213,34 @@ export function DirtyWorktreeDialog({
           </div>
         )}
 
+        {/* Stashing indicator */}
+        {stashing && (
+          <div className="dirty-wt-stashing" role="status">
+            Stashing changes...
+          </div>
+        )}
+
         {/* Actions */}
         <div className="dirty-wt-actions">
-          <button className="dirty-wt-btn" onClick={onCancel}>
+          <button className="dirty-wt-btn" onClick={onCancel} disabled={stashing}>
             Cancel
           </button>
           {stashErrors && stashErrors.length > 0 ? (
             <>
-              <button className="dirty-wt-btn dirty-wt-btn--close-anyway" onClick={onCloseAnyway}>
-                Close Anyway (changes will be lost)
+              <button className="dirty-wt-btn dirty-wt-btn--close-anyway" onClick={onCloseAnyway} disabled={stashing}>
+                Discard changes and close
               </button>
-              <button className="dirty-wt-btn dirty-wt-btn--stash" onClick={onStashAndClose}>
-                Try Again
+              <button className="dirty-wt-btn dirty-wt-btn--stash" onClick={handleStashAndClose} disabled={stashing}>
+                {stashing ? "Stashing changes..." : "Try Again"}
               </button>
             </>
           ) : (
             <>
-              <button className="dirty-wt-btn dirty-wt-btn--close-anyway" onClick={onCloseAnyway}>
-                Close Anyway
+              <button className="dirty-wt-btn dirty-wt-btn--close-anyway" onClick={onCloseAnyway} disabled={stashing}>
+                Discard changes and close
               </button>
-              <button className="dirty-wt-btn dirty-wt-btn--stash" onClick={onStashAndClose}>
-                Stash &amp; Close
+              <button className="dirty-wt-btn dirty-wt-btn--stash" onClick={handleStashAndClose} disabled={stashing}>
+                {stashing ? "Stashing changes..." : "Stash & Close"}
               </button>
             </>
           )}

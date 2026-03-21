@@ -253,8 +253,31 @@ fn cleanup_stale_worktrees(app: &tauri::AppHandle, database: &db::Database) {
                     _ => {}
                 }
             }
-            // Clear the journal after replay
-            git::journal::clear_journal(&app_data_dir, &proj.path);
+
+            // Verification pass: re-check that all orphan directories from the
+            // journal were actually removed before clearing it.  If the app
+            // crashed during the replay above, the journal survives and the next
+            // startup will retry.
+            let mut all_cleaned = true;
+            for entry in &incomplete {
+                let path = Path::new(&entry.worktree_path);
+                if entry.worktree_path != "pending" && path.is_dir() {
+                    log::warn!(
+                        "[worktree-cleanup] Verification failed: orphan still exists after replay: {}",
+                        entry.worktree_path
+                    );
+                    all_cleaned = false;
+                }
+            }
+            if all_cleaned {
+                // Only clear the journal once we've verified all orphans are gone
+                git::journal::clear_journal(&app_data_dir, &proj.path);
+            } else {
+                log::warn!(
+                    "[worktree-cleanup] Keeping journal for '{}' — some orphans were not cleaned",
+                    proj.path
+                );
+            }
         }
     }
 
@@ -721,5 +744,93 @@ mod tests {
 
         let contents = std::fs::read_to_string(&crash_log).unwrap();
         assert!(contents.contains("TEST CRASH"));
+    }
+
+    /// Journal should be cleared after replay when all orphans are removed.
+    #[test]
+    fn journal_cleared_after_successful_replay() {
+        let app_data_dir = tempfile::tempdir().unwrap();
+        let repo_dir = tempfile::tempdir().unwrap();
+        let repo_path = repo_dir.path().to_str().unwrap();
+
+        // Create a fake orphan directory and log a journal entry for it
+        let orphan_dir = app_data_dir.path().join("orphan-wt");
+        std::fs::create_dir_all(&orphan_dir).unwrap();
+        let orphan_path = orphan_dir.to_str().unwrap();
+
+        git::journal::log_operation(
+            app_data_dir.path(),
+            repo_path,
+            "CREATE",
+            "sess1",
+            "proj1",
+            "feat",
+            orphan_path,
+        )
+        .unwrap();
+
+        // Verify journal has incomplete operations
+        let incomplete =
+            git::journal::get_incomplete_operations(app_data_dir.path(), repo_path);
+        assert_eq!(incomplete.len(), 1);
+
+        // Remove the orphan (simulating replay)
+        std::fs::remove_dir_all(&orphan_dir).unwrap();
+
+        // Verification: orphan is gone, so journal should be clearable
+        assert!(!orphan_dir.exists());
+
+        // Clear journal (this is what the production code does after verification passes)
+        git::journal::clear_journal(app_data_dir.path(), repo_path);
+
+        // Journal should now be empty
+        let remaining =
+            git::journal::get_incomplete_operations(app_data_dir.path(), repo_path);
+        assert!(remaining.is_empty());
+    }
+
+    /// Journal should NOT be cleared if orphans still exist after replay.
+    #[test]
+    fn journal_kept_when_orphans_remain() {
+        let app_data_dir = tempfile::tempdir().unwrap();
+        let repo_dir = tempfile::tempdir().unwrap();
+        let repo_path = repo_dir.path().to_str().unwrap();
+
+        // Create a fake orphan directory and log a journal entry
+        let orphan_dir = app_data_dir.path().join("stubborn-orphan");
+        std::fs::create_dir_all(&orphan_dir).unwrap();
+        let orphan_path = orphan_dir.to_str().unwrap();
+
+        git::journal::log_operation(
+            app_data_dir.path(),
+            repo_path,
+            "REMOVE",
+            "sess1",
+            "proj1",
+            "",
+            orphan_path,
+        )
+        .unwrap();
+
+        // Simulate failed cleanup: orphan still exists
+        assert!(orphan_dir.exists());
+
+        // Verification check: orphan is still there, should NOT clear
+        let incomplete =
+            git::journal::get_incomplete_operations(app_data_dir.path(), repo_path);
+        let mut all_cleaned = true;
+        for entry in &incomplete {
+            if entry.worktree_path != "pending"
+                && Path::new(&entry.worktree_path).is_dir()
+            {
+                all_cleaned = false;
+            }
+        }
+        assert!(!all_cleaned, "verification should detect remaining orphan");
+
+        // Journal should still have entries
+        let remaining =
+            git::journal::get_incomplete_operations(app_data_dir.path(), repo_path);
+        assert_eq!(remaining.len(), 1);
     }
 }

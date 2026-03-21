@@ -55,6 +55,7 @@ fn validate_worktree_path(path: &str) -> Result<std::path::PathBuf, String> {
 
 /// Resolves the worktree path for a given session+project from the database.
 /// Falls back to looking up the project's path directly if no worktree entry exists.
+/// Returns an error if the resolved directory no longer exists on disk (e.g. deleted externally).
 fn resolve_worktree_path(
     db: &Database,
     session_id: &str,
@@ -65,6 +66,12 @@ fn resolve_worktree_path(
         .get_worktree_by_session_and_project(session_id, project_id)
         .map_err(|e| format!("Failed to look up worktree: {}", e))?
     {
+        // Verify the worktree directory still exists on disk
+        if !std::path::Path::new(&wt.worktree_path).is_dir() {
+            return Err(
+                "Session working directory no longer exists. The branch worktree may have been deleted externally.".to_string()
+            );
+        }
         return Ok(wt.worktree_path);
     }
     // Fallback: look up the project's path directly
@@ -2846,6 +2853,7 @@ pub fn git_remove_worktree(
         .ok_or_else(|| format!("Project '{}' not found", project_id))?;
     let wt_id = wt.id.clone();
     let wt_path = wt.worktree_path.clone();
+    let wt_branch = wt.branch_name.clone();
     let root_path = project.path.clone();
     let is_main = wt.is_main_worktree;
     drop(db);
@@ -2910,9 +2918,13 @@ pub fn git_remove_worktree(
     let _ = app.emit(&format!("worktree-removed-{}", project_id), ());
 
     // 5. Return result
+    let friendly_msg = match &wt_branch {
+        Some(branch) => format!("Branch worktree removed for '{}'", branch),
+        None => "Branch worktree removed".to_string(),
+    };
     Ok(GitOperationResult {
         success: true,
-        message: format!("Removed worktree at '{}'", wt_path),
+        message: friendly_msg,
         error: None,
     })
 }
@@ -3502,4 +3514,87 @@ pub fn git_cleanup_orphan_worktrees(
     }
 
     Ok(results)
+}
+
+// ─── Tests ──────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    /// Helper: create a fresh database backed by a temp file.
+    fn test_db() -> Database {
+        let tmp = NamedTempFile::new().unwrap();
+        Database::new(tmp.path()).expect("Failed to create test database")
+    }
+
+    #[test]
+    fn test_resolve_worktree_path_with_existing_worktree_dir() {
+        let db = test_db();
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let wt_path = tmp_dir.path().to_str().unwrap();
+
+        // Register a project
+        db.insert_project("proj1", "/some/repo", "Test Project", "[]", "[]")
+            .unwrap();
+        // Insert a worktree pointing to a real (existing) directory
+        db.insert_session_worktree("wt1", "sess1", "proj1", wt_path, Some("feat"), false)
+            .unwrap();
+
+        let result = resolve_worktree_path(&db, "sess1", "proj1");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), wt_path);
+    }
+
+    #[test]
+    fn test_resolve_worktree_path_missing_dir_returns_error() {
+        let db = test_db();
+
+        // Register a project
+        db.insert_project("proj1", "/some/repo", "Test Project", "[]", "[]")
+            .unwrap();
+        // Insert a worktree pointing to a directory that does not exist
+        db.insert_session_worktree(
+            "wt1",
+            "sess1",
+            "proj1",
+            "/nonexistent/hermes-worktrees/abc/wt",
+            Some("feat"),
+            false,
+        )
+        .unwrap();
+
+        let result = resolve_worktree_path(&db, "sess1", "proj1");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(
+            err.contains("no longer exists"),
+            "Error should mention directory no longer exists, got: {}",
+            err
+        );
+    }
+
+    #[test]
+    fn test_resolve_worktree_path_falls_back_to_project() {
+        let db = test_db();
+
+        // Register a project but don't insert any worktree
+        db.insert_project("proj1", "/some/repo", "Test Project", "[]", "[]")
+            .unwrap();
+
+        let result = resolve_worktree_path(&db, "sess1", "proj1");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "/some/repo");
+    }
+
+    #[test]
+    fn test_resolve_worktree_path_no_project_no_worktree() {
+        let db = test_db();
+
+        let result = resolve_worktree_path(&db, "sess1", "proj1");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.contains("No worktree or project found"));
+    }
 }

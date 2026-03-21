@@ -388,8 +388,7 @@ impl Database {
                 branch_name TEXT,
                 is_main_worktree INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
-                UNIQUE(session_id, realm_id),
-                UNIQUE(worktree_path)
+                UNIQUE(session_id, realm_id)
             );
             CREATE INDEX IF NOT EXISTS idx_sw_session ON session_worktrees(session_id);
             CREATE INDEX IF NOT EXISTS idx_sw_realm ON session_worktrees(realm_id);
@@ -461,6 +460,53 @@ impl Database {
         let _ = self
             .conn
             .execute_batch("ALTER TABLE session_worktrees ADD COLUMN last_activity_at TEXT;");
+
+        // Migration: drop UNIQUE(worktree_path) constraint from session_worktrees
+        // so that shared worktrees (multiple sessions on the same branch) can coexist.
+        // SQLite doesn't support ALTER TABLE DROP CONSTRAINT, so we recreate the table.
+        // We check if the old UNIQUE index exists before attempting the migration.
+        let has_unique_wt_path: bool = self
+            .conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_index_list('session_worktrees') WHERE name = 'sqlite_autoindex_session_worktrees_2'",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0)
+            > 0;
+
+        if has_unique_wt_path {
+            self.conn
+                .execute_batch(
+                    "
+                    CREATE TABLE session_worktrees_new (
+                        id TEXT PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        realm_id TEXT NOT NULL,
+                        worktree_path TEXT NOT NULL,
+                        branch_name TEXT,
+                        is_main_worktree INTEGER NOT NULL DEFAULT 0,
+                        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+                        last_activity_at TEXT,
+                        UNIQUE(session_id, realm_id)
+                    );
+                    INSERT INTO session_worktrees_new (id, session_id, realm_id, worktree_path, branch_name, is_main_worktree, created_at, last_activity_at)
+                        SELECT id, session_id, realm_id, worktree_path, branch_name, is_main_worktree, created_at, last_activity_at
+                        FROM session_worktrees;
+                    DROP TABLE session_worktrees;
+                    ALTER TABLE session_worktrees_new RENAME TO session_worktrees;
+                    CREATE INDEX IF NOT EXISTS idx_sw_session ON session_worktrees(session_id);
+                    CREATE INDEX IF NOT EXISTS idx_sw_realm ON session_worktrees(realm_id);
+                    CREATE INDEX IF NOT EXISTS idx_sw_path ON session_worktrees(worktree_path);
+                    ",
+                )
+                .map_err(|e| {
+                    format!(
+                        "Migration (drop UNIQUE worktree_path) failed: {}",
+                        e
+                    )
+                })?;
+        }
 
         Ok(())
     }
@@ -1973,6 +2019,18 @@ impl Database {
         Ok(())
     }
 
+    /// Count how many session_worktrees records reference the same worktree path.
+    /// Used to protect shared worktrees from premature disk deletion.
+    pub fn count_sessions_for_worktree_path(&self, path: &str) -> Result<i64, String> {
+        self.conn
+            .query_row(
+                "SELECT COUNT(*) FROM session_worktrees WHERE worktree_path = ?1",
+                params![path],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())
+    }
+
     // ─── SSH Saved Hosts ──────────────────────────────────────────
 
     pub fn list_ssh_saved_hosts(&self) -> Result<Vec<SshSavedHost>, String> {
@@ -2643,16 +2701,21 @@ mod tests {
     }
 
     #[test]
-    fn test_unique_worktree_path_constraint() {
+    fn test_shared_worktree_path_allowed() {
         let db = test_db();
 
         db.insert_session_worktree("wt1", "sess1", "project1", "/same/path", Some("a"), false)
             .unwrap();
 
-        // Inserting with same worktree_path should fail (UNIQUE constraint)
+        // Multiple sessions sharing the same worktree path is now allowed
         let result =
             db.insert_session_worktree("wt2", "sess2", "project2", "/same/path", Some("b"), false);
-        assert!(result.is_err());
+        assert!(result.is_ok(), "shared worktree paths should be allowed");
+
+        // Verify both records exist
+        let all = db.get_all_session_worktrees().unwrap();
+        let matching: Vec<_> = all.iter().filter(|w| w.worktree_path == "/same/path").collect();
+        assert_eq!(matching.len(), 2);
     }
 
     #[test]
@@ -2666,6 +2729,67 @@ mod tests {
         let result =
             db.insert_session_worktree("wt1", "sess2", "project2", "/path2", Some("b"), false);
         assert!(result.is_err());
+    }
+
+    // ── count_sessions_for_worktree_path ──────────────────────────────
+
+    #[test]
+    fn test_count_sessions_for_worktree_path_zero() {
+        let db = test_db();
+        let count = db.count_sessions_for_worktree_path("/nonexistent").unwrap();
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_count_sessions_for_worktree_path_single() {
+        let db = test_db();
+        db.insert_session_worktree("wt1", "sess1", "project1", "/path/wt1", Some("a"), false)
+            .unwrap();
+
+        let count = db.count_sessions_for_worktree_path("/path/wt1").unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_count_sessions_for_worktree_path_multiple() {
+        let db = test_db();
+        // Two sessions sharing the same worktree path (shared branch)
+        db.insert_session_worktree("wt1", "sess1", "project1", "/shared/path", Some("feat"), false)
+            .unwrap();
+        db.insert_session_worktree("wt2", "sess2", "project2", "/shared/path", Some("feat"), false)
+            .unwrap();
+
+        let count = db.count_sessions_for_worktree_path("/shared/path").unwrap();
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_count_sessions_decreases_after_delete() {
+        let db = test_db();
+        db.insert_session_worktree("wt1", "sess1", "project1", "/shared/path", Some("feat"), false)
+            .unwrap();
+        db.insert_session_worktree("wt2", "sess2", "project2", "/shared/path", Some("feat"), false)
+            .unwrap();
+
+        assert_eq!(db.count_sessions_for_worktree_path("/shared/path").unwrap(), 2);
+
+        db.delete_session_worktree("wt1").unwrap();
+        assert_eq!(db.count_sessions_for_worktree_path("/shared/path").unwrap(), 1);
+
+        db.delete_session_worktree("wt2").unwrap();
+        assert_eq!(db.count_sessions_for_worktree_path("/shared/path").unwrap(), 0);
+    }
+
+    #[test]
+    fn test_count_sessions_ignores_different_paths() {
+        let db = test_db();
+        db.insert_session_worktree("wt1", "sess1", "project1", "/path/a", Some("a"), false)
+            .unwrap();
+        db.insert_session_worktree("wt2", "sess2", "project2", "/path/b", Some("b"), false)
+            .unwrap();
+
+        assert_eq!(db.count_sessions_for_worktree_path("/path/a").unwrap(), 1);
+        assert_eq!(db.count_sessions_for_worktree_path("/path/b").unwrap(), 1);
     }
 }
 

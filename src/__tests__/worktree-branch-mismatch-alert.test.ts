@@ -51,7 +51,7 @@ function getBranchMismatchAlertOutput(props: BranchMismatchAlertProps) {
     role: "alert",
     ariaLive: "polite",
     className: "branch-mismatch-alert",
-    titleText: "You've entered another session's worktree",
+    titleText: "You've entered another session's working directory",
     branchText: props.branch,
     sessionLabelText: props.sessionLabel,
     detailText: `Branch ${props.branch} belongs to session ${props.sessionLabel}`,
@@ -167,7 +167,7 @@ describe("BranchMismatchAlert", () => {
     expect(output.closeButtonAriaLabel).toBe("Dismiss");
   });
 
-  it("renders title text about entering another session's worktree", () => {
+  it("renders title text about entering another session's working directory", () => {
     const output = getBranchMismatchAlertOutput({
       branch: "hotfix/auth",
       sessionLabel: "Auth Session",
@@ -175,7 +175,7 @@ describe("BranchMismatchAlert", () => {
     });
 
     expect(output.titleText).toContain("another session");
-    expect(output.titleText).toContain("worktree");
+    expect(output.titleText).toContain("working directory");
   });
 
   it("auto-dismiss uses exactly 8000ms timeout", () => {

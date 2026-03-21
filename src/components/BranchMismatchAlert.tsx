@@ -30,7 +30,7 @@ export function BranchMismatchAlert({ branch, sessionLabel, onDismiss }: BranchM
 			</span>
 			<div className="branch-mismatch-body">
 				<div className="branch-mismatch-title">
-					You&apos;ve entered another session&apos;s worktree
+					You&apos;ve entered another session&apos;s working directory
 				</div>
 				<div className="branch-mismatch-detail">
 					Branch <span className="branch-mismatch-branch">{branch}</span> belongs to session{" "}

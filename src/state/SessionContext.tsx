@@ -911,6 +911,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
       // Create worktrees for each git project with a branch selection
       const sharedBranches: string[] = [];
+      const worktreeErrors: string[] = [];
       if (opts?.branchSelections && opts?.projectIds?.length) {
         for (const projectId of opts.projectIds) {
           const sel = opts.branchSelections[projectId];
@@ -922,6 +923,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             }
           } catch (wtErr) {
             console.warn(`[SessionContext] Failed to create worktree for project ${projectId}:`, wtErr);
+            worktreeErrors.push(`${projectId}: ${wtErr}`);
           }
         }
       } else if (opts?.branchName && opts?.projectIds?.length) {
@@ -936,6 +938,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } catch (wtErr) {
           console.warn("[SessionContext] Failed to create worktree, session will use default cwd:", wtErr);
         }
+      }
+
+      // Notify the UI about worktree creation failures so the user knows
+      // which projects lack branch isolation.  The session still proceeds.
+      if (worktreeErrors.length > 0) {
+        window.dispatchEvent(new CustomEvent("hermes:worktree-errors", {
+          detail: { errors: worktreeErrors, sessionLabel: opts?.label },
+        }));
       }
 
       // Set up the terminal + output listener BEFORE creating the backend

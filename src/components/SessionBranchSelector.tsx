@@ -226,7 +226,7 @@ export function SessionBranchSelector({ projectId, onBranchSelected, onSkip }: S
         </div>
         <div className="session-creator-actions">
           <button className="session-creator-btn-secondary" onClick={onSkip}>
-            Skip
+            Use current branch
           </button>
         </div>
       </div>
@@ -244,7 +244,7 @@ export function SessionBranchSelector({ projectId, onBranchSelected, onSkip }: S
         </div>
         <div className="session-creator-actions">
           <button className="session-creator-btn-secondary" onClick={onSkip}>
-            Skip
+            Use current branch
           </button>
         </div>
       </div>
@@ -310,7 +310,7 @@ export function SessionBranchSelector({ projectId, onBranchSelected, onSkip }: S
                 )}
                 {branch.taken && (
                   <span className="branch-selector-item-taken-label">
-                    Session is here
+                    In use
                   </span>
                 )}
                 {!branch.taken && branch.last_commit_summary && (
@@ -370,16 +370,16 @@ export function SessionBranchSelector({ projectId, onBranchSelected, onSkip }: S
       <div className="branch-selector-skip-warning">
         <span className="branch-selector-skip-warning-icon">!</span>
         <span>
-          Skipping means this session will share the working directory with
-          other sessions on the same branch. Changes in one session will
-          affect the other.
+          Using the same branch as another session means both sessions share
+          the same files. Changes in one session will immediately appear in
+          the other.
         </span>
       </div>
 
       {/* Actions */}
       <div className="session-creator-actions">
         <button className="session-creator-btn-secondary" onClick={onSkip}>
-          Skip
+          Use current branch
         </button>
         {tab === "existing" ? (
           <button

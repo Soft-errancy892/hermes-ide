@@ -835,6 +835,9 @@ export function SessionCreator({ onClose, onCreate, defaultGroup }: SessionCreat
           <>
             <div className="session-creator-body">
               <div className="session-creator-section-title">Select Branches</div>
+              <div className="session-creator-subtitle">
+                Each project gets its own isolated branch so changes in this session don't affect other sessions.
+              </div>
               <div className="session-creator-branch-multi">
                 {selectedProjectIds.map((projectId) => {
                   const isGit = gitProjectIds.includes(projectId);
@@ -896,7 +899,7 @@ export function SessionCreator({ onClose, onCreate, defaultGroup }: SessionCreat
                 Back
               </button>
               <button className="session-creator-btn-secondary" onClick={handleBranchSkipped}>
-                Skip branches
+                Continue without isolation
               </button>
               <button
                 className="session-creator-btn-primary"

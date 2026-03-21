@@ -61,6 +61,24 @@ function formatWorktreeError(raw: string): string {
   return `Unexpected error: ${raw}`;
 }
 
+/**
+ * Extract a short, user-friendly label from a worktree path for use in tooltips.
+ * Full paths like `/Users/.../hermes-worktrees/hash/session_branch` become
+ * just the branch + session info.
+ */
+export function friendlyWorktreeTooltip(
+  worktreePath: string,
+  branchName?: string | null,
+  sessionLabel?: string,
+): string {
+  const parts: string[] = [];
+  if (branchName) parts.push(branchName);
+  if (sessionLabel) parts.push(sessionLabel);
+  if (parts.length > 0) return parts.join(" — ");
+  // Fallback: use last segment of path
+  return worktreePath.split("/").pop() || worktreePath;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────
 
 interface ProjectGroup {
@@ -271,7 +289,7 @@ export function WorktreeOverviewPanel() {
   if (loading) {
     return (
       <div className="worktree-overview">
-        <div className="worktree-overview-loading">Loading worktrees...</div>
+        <div className="worktree-overview-loading">Loading working copies...</div>
       </div>
     );
   }
@@ -282,16 +300,16 @@ export function WorktreeOverviewPanel() {
       <div className="worktree-overview-search">
         <input
           className="worktree-overview-search-input"
-          placeholder="Search worktrees..."
+          placeholder="Search working copies..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          aria-label="Search worktrees"
+          aria-label="Search working copies"
         />
         <button
           className="worktree-overview-refresh"
           onClick={loadData}
           title="Refresh"
-          aria-label="Refresh worktrees"
+          aria-label="Refresh working copies"
         >
           &#8635;
         </button>
@@ -320,7 +338,7 @@ export function WorktreeOverviewPanel() {
       <div className="worktree-overview-scroll">
         {filteredGroups.length === 0 && !error && (
           <div className="worktree-overview-empty">
-            {search ? "No worktrees match your search." : "No worktrees found."}
+            {search ? "No working copies match your search." : "No working copies found."}
           </div>
         )}
 
@@ -381,7 +399,7 @@ export function WorktreeOverviewPanel() {
                           <span className="worktree-overview-age">
                             {timeAgo(wt.created_at)}
                             {isStale(wt.created_at) && (
-                              <span className="worktree-overview-stale" title="This worktree is older than 14 days">stale</span>
+                              <span className="worktree-overview-stale" title="This working copy is older than 14 days">stale</span>
                             )}
                           </span>
                           {wt.last_activity_at && (
@@ -416,7 +434,7 @@ export function WorktreeOverviewPanel() {
                             e.stopPropagation();
                             handleCopyPath(wt.worktree_path);
                           }}
-                          title={`Copy path: ${wt.worktree_path}`}
+                          title={`Copy path: ${friendlyWorktreeTooltip(wt.worktree_path, wt.branch_name, wt.session_label)}`}
                         >
                           Copy
                         </button>
@@ -479,7 +497,7 @@ export function WorktreeOverviewPanel() {
                             e.stopPropagation();
                             handleCopyPath(orphan.worktree_path);
                           }}
-                          title={`Copy path: ${orphan.worktree_path}`}
+                          title={`Copy path: ${friendlyWorktreeTooltip(orphan.worktree_path, orphan.branch_name)}`}
                         >
                           Copy
                         </button>
@@ -503,7 +521,7 @@ export function WorktreeOverviewPanel() {
             className="worktree-overview-confirm-yes worktree-overview-confirm-destructive"
             onClick={handleCleanup}
           >
-            {`Delete ${selectedOrphans.size} worktree${selectedOrphans.size !== 1 ? "s" : ""}`}
+            {`Delete ${selectedOrphans.size} working ${selectedOrphans.size !== 1 ? "copies" : "copy"}`}
           </button>
           <button
             className="worktree-overview-confirm-no"
@@ -517,7 +535,7 @@ export function WorktreeOverviewPanel() {
       {/* Footer */}
       <div className="worktree-overview-footer">
         <div className="worktree-overview-footer-stats">
-          <span>{totalWorktrees} worktree{totalWorktrees !== 1 ? "s" : ""}</span>
+          <span>{totalWorktrees} working {totalWorktrees !== 1 ? "copies" : "copy"}</span>
           {totalDiskUsage > 0 && (
             <span>{formatBytes(totalDiskUsage)}</span>
           )}
