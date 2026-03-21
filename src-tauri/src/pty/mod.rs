@@ -221,8 +221,7 @@ pub(crate) fn ai_launch_command(provider: &str, auto_approve: bool, channels: &[
     // Append channels (Claude-only feature)
     if provider == "claude" {
         for ch in channels {
-            let escaped = ch.replace('\'', "'\\''");
-            cmd.push_str(&format!(" --channels '{}'", escaped));
+            cmd.push_str(&format!(" --channels {}", ch));
         }
     }
     Some(cmd)
@@ -665,14 +664,14 @@ mod tests {
     fn test_ai_launch_command_with_one_channel() {
         use super::ai_launch_command;
         let cmd = ai_launch_command("claude", false, &["plugin:telegram@claude-plugins-official".to_string()]);
-        assert_eq!(cmd, Some("claude --channels 'plugin:telegram@claude-plugins-official'".to_string()));
+        assert_eq!(cmd, Some("claude --channels plugin:telegram@claude-plugins-official".to_string()));
     }
 
     #[test]
     fn test_ai_launch_command_with_channels_and_auto_approve() {
         use super::ai_launch_command;
         let cmd = ai_launch_command("claude", true, &["plugin:telegram@claude-plugins-official".to_string()]);
-        assert_eq!(cmd, Some("claude --dangerously-skip-permissions --channels 'plugin:telegram@claude-plugins-official'".to_string()));
+        assert_eq!(cmd, Some("claude --dangerously-skip-permissions --channels plugin:telegram@claude-plugins-official".to_string()));
     }
 
     #[test]
@@ -680,7 +679,7 @@ mod tests {
         use super::ai_launch_command;
         let channels = vec!["plugin:telegram@foo".to_string(), "plugin:slack@bar".to_string()];
         let cmd = ai_launch_command("claude", false, &channels);
-        assert_eq!(cmd, Some("claude --channels 'plugin:telegram@foo' --channels 'plugin:slack@bar'".to_string()));
+        assert_eq!(cmd, Some("claude --channels plugin:telegram@foo --channels plugin:slack@bar".to_string()));
     }
 
     #[test]
@@ -691,10 +690,10 @@ mod tests {
     }
 
     #[test]
-    fn test_ai_launch_command_channel_shell_escape() {
+    fn test_ai_launch_command_channel_value_passed_directly() {
         use super::ai_launch_command;
-        let cmd = ai_launch_command("claude", false, &["plugin:test'injection".to_string()]);
-        assert!(cmd.unwrap().contains("'plugin:test'\\''injection'"));
+        let cmd = ai_launch_command("claude", false, &["plugin:test@my-plugin".to_string()]);
+        assert_eq!(cmd, Some("claude --channels plugin:test@my-plugin".to_string()));
     }
 
     // ── Prompt detection after column fix ──
